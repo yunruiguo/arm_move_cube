@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from backend import PlanningBackend, ToyWorldBackend
+from benchmark_scenarios import build_benchmark_world as build_default_benchmark_world
 from mcts import evaluate_coas, select_best_coa
 from spatial_map import FORBIDDEN, OBSTACLE, FREE, world_to_grid
 from visualizer import generate_visualizations
@@ -12,53 +14,21 @@ COA = dict[str, object]
 EvaluationResult = dict[str, object]
 
 
+def _get_state(source: PlanningBackend | WorldState) -> WorldState:
+    """Return a world state from either a backend or a raw state object."""
+    if hasattr(source, "get_current_state"):
+        return source.get_current_state()
+    return source
+
+
 def build_benchmark_world() -> WorldState:
-    """Create a deterministic benchmark world for end-to-end evaluation."""
-    world_state = WorldState(
-        robot_position=(0, 0),
-        obstacles=[
-            (4, 1),
-            (4, 2),
-            (4, 3),
-            (4, 4),
-            (4, 5),
-            (4, 6),
-            (2, 7),
-            (3, 7),
-            (7, 3),
-            (8, 3),
-            (9, 3),
-            (10, 3),
-            (6, 7),
-            (7, 7),
-            (8, 7),
-        ],
-        forbidden_zones=[(11, 4), (11, 5), (12, 4), (12, 5)],
-        goal_regions={
-            "left_goal": [(1, 9), (2, 9)],
-            "right_goal": [(12, 8), (12, 9)],
-            "staging_goal": [(6, 9), (7, 9)],
-        },
-    )
-    world_state.update_object(
-        "crate_red", position=(2, 1), object_type="crate", graspable=True
-    )
-    world_state.update_object(
-        "crate_blue", position=(5, 1), object_type="crate", graspable=True
-    )
-    world_state.update_object(
-        "crate_green", position=(3, 8), object_type="crate", graspable=True
-    )
-    world_state.update_object(
-        "crate_yellow", position=(8, 1), object_type="crate", graspable=True
-    )
-    world_state.update_object(
-        "crate_orange", position=(11, 8), object_type="crate", graspable=True
-    )
-    world_state.update_object(
-        "statue", position=(9, 9), object_type="decor", graspable=False
-    )
-    return world_state
+    """Create the default deterministic benchmark world."""
+    return build_default_benchmark_world()
+
+
+def build_benchmark_backend() -> ToyWorldBackend:
+    """Create the default toy backend for the benchmark world."""
+    return ToyWorldBackend(build_benchmark_world())
 
 
 def build_toy_world() -> WorldState:
@@ -108,8 +78,9 @@ def manhattan_distance(start: tuple[int, int], goal: tuple[int, int]) -> int:
     return abs(start[0] - goal[0]) + abs(start[1] - goal[1])
 
 
-def get_graspable_object_names(state: WorldState) -> list[str]:
+def get_graspable_object_names(source: PlanningBackend | WorldState) -> list[str]:
     """Return graspable object names in insertion order."""
+    state = _get_state(source)
     return [
         name for name, obj in state.objects.items() if bool(obj["graspable"])
     ]
@@ -136,16 +107,18 @@ def build_coa(family: str, name: str, actions: list[Action]) -> COA:
     }
 
 
-def estimate_pick_cost(state: WorldState, object_name: str) -> int:
+def estimate_pick_cost(source: PlanningBackend | WorldState, object_name: str) -> int:
     """Estimate how hard it is to reach an object from the robot."""
+    state = _get_state(source)
     robot_position = state.get_robot_position()
     object_position = state.get_object_position(object_name)
     assert object_position is not None
     return manhattan_distance(robot_position, object_position)
 
 
-def estimate_blocking_score(state: WorldState, object_name: str) -> int:
+def estimate_blocking_score(source: PlanningBackend | WorldState, object_name: str) -> int:
     """Estimate how likely an object is to obstruct useful routes."""
+    state = _get_state(source)
     object_position = state.get_object_position(object_name)
     assert object_position is not None
 
@@ -164,8 +137,12 @@ def estimate_blocking_score(state: WorldState, object_name: str) -> int:
     return score
 
 
-def choose_goal_region_for_object(state: WorldState, object_name: str) -> tuple[str, tuple[int, int]]:
+def choose_goal_region_for_object(
+    source: PlanningBackend | WorldState,
+    object_name: str,
+) -> tuple[str, tuple[int, int]]:
     """Assign an object to a sensible goal region based on its location."""
+    state = _get_state(source)
     object_position = state.get_object_position(object_name)
     assert object_position is not None
 
@@ -176,11 +153,12 @@ def choose_goal_region_for_object(state: WorldState, object_name: str) -> tuple[
     return "staging_goal", state.goal_regions["staging_goal"][0]
 
 
-def generate_nearest_first_coa(state: WorldState) -> COA:
+def generate_nearest_first_coa(source: PlanningBackend | WorldState) -> COA:
     """Generate a COA that prioritizes the easiest objects to reach first."""
+    state = _get_state(source)
     robot_position = state.get_robot_position()
     sorted_names = sorted(
-        get_graspable_object_names(state),
+        get_graspable_object_names(source),
         key=lambda name: manhattan_distance(
             robot_position,
             state.get_object_position(name) or robot_position,
@@ -198,13 +176,14 @@ def generate_nearest_first_coa(state: WorldState) -> COA:
     )
 
 
-def generate_goal_grouped_coa(state: WorldState) -> COA:
+def generate_goal_grouped_coa(source: PlanningBackend | WorldState) -> COA:
     """Generate a COA that groups objects by sensible goal regions."""
+    state = _get_state(source)
     region_order = ["left_goal", "right_goal", "staging_goal"]
     grouped_names: dict[str, list[str]] = {region_name: [] for region_name in region_order}
 
-    for object_name in get_graspable_object_names(state):
-        region_name, _ = choose_goal_region_for_object(state, object_name)
+    for object_name in get_graspable_object_names(source):
+        region_name, _ = choose_goal_region_for_object(source, object_name)
         grouped_names[region_name].append(object_name)
 
     actions: list[Action] = []
@@ -227,13 +206,14 @@ def generate_goal_grouped_coa(state: WorldState) -> COA:
     )
 
 
-def generate_clear_blocking_first_coa(state: WorldState) -> COA:
+def generate_clear_blocking_first_coa(source: PlanningBackend | WorldState) -> COA:
     """Generate a COA that clears likely blockers before easier deliveries."""
+    state = _get_state(source)
     sorted_names = sorted(
-        get_graspable_object_names(state),
+        get_graspable_object_names(source),
         key=lambda name: (
-            -estimate_blocking_score(state, name),
-            estimate_pick_cost(state, name),
+            -estimate_blocking_score(source, name),
+            estimate_pick_cost(source, name),
         ),
     )
     actions = [
@@ -248,8 +228,9 @@ def generate_clear_blocking_first_coa(state: WorldState) -> COA:
     )
 
 
-def generate_failure_probe_coa(state: WorldState) -> COA:
+def generate_failure_probe_coa(source: PlanningBackend | WorldState) -> COA:
     """Generate a deliberately bad COA to expose failure behavior."""
+    state = _get_state(source)
     statue_position = state.get_object_position("statue")
     assert statue_position is not None
     actions = [
@@ -264,13 +245,13 @@ def generate_failure_probe_coa(state: WorldState) -> COA:
     )
 
 
-def generate_coas(state: WorldState) -> list[COA]:
+def generate_coas(source: PlanningBackend | WorldState) -> list[COA]:
     """Generate deterministic COAs across several strategy styles."""
     return [
-        generate_nearest_first_coa(state),
-        generate_goal_grouped_coa(state),
-        generate_clear_blocking_first_coa(state),
-        generate_failure_probe_coa(state),
+        generate_nearest_first_coa(source),
+        generate_goal_grouped_coa(source),
+        generate_clear_blocking_first_coa(source),
+        generate_failure_probe_coa(source),
     ]
 
 
@@ -345,9 +326,10 @@ def print_best_choice(
 
 def main() -> None:
     """Run the full toy planning prototype."""
-    world_state = build_benchmark_world()
+    backend = build_benchmark_backend()
+    world_state = backend.get_current_state()
     occupancy_grid = world_to_grid(world_state)
-    coas = generate_coas(world_state)
+    coas = generate_coas(backend)
 
     summarize_world(world_state)
     summarize_grid(occupancy_grid)

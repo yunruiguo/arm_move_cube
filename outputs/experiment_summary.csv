@@ -1,0 +1,10 @@
+scenario,mode,selected_strategy,family,total_score,success,failed_actions,completed_actions,failure_reasons
+default_benchmark,fixed-order baseline,fixed_order_baseline,fixed-order-baseline,77,True,0,3,
+default_benchmark,nearest-first heuristic,nearest_first_progressive_delivery,nearest-first,79,True,0,3,
+default_benchmark,current multi-COA evaluator,nearest_first_progressive_delivery,nearest-first,79,True,0,3,
+corridor_challenge,fixed-order baseline,fixed_order_baseline,fixed-order-baseline,80,True,0,3,
+corridor_challenge,nearest-first heuristic,nearest_first_progressive_delivery,nearest-first,85,True,0,3,
+corridor_challenge,current multi-COA evaluator,nearest_first_progressive_delivery,nearest-first,85,True,0,3,
+goal_pressure,fixed-order baseline,fixed_order_baseline,fixed-order-baseline,79,True,0,3,
+goal_pressure,nearest-first heuristic,nearest_first_progressive_delivery,nearest-first,74,True,0,3,
+goal_pressure,current multi-COA evaluator,nearest_first_progressive_delivery,nearest-first,74,True,0,3,

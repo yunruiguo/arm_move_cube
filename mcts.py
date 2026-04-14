@@ -2,11 +2,19 @@
 
 from __future__ import annotations
 
+from backend import PlanningBackend
 from reachability_engine import query_reachability
 from world_state import WorldState
 
 COA = dict[str, object]
 EvaluationResult = dict[str, object]
+
+
+def _get_state(source: PlanningBackend | WorldState) -> WorldState:
+    """Return a world state from either a backend or a raw state object."""
+    if hasattr(source, "get_current_state"):
+        return source.get_current_state()
+    return source
 
 
 def _print_action_summary(
@@ -28,10 +36,11 @@ def _print_action_summary(
 
 
 def evaluate_coa_with_simplified_mcts(
-    state: WorldState,
+    source: PlanningBackend | WorldState,
     coa: COA,
 ) -> EvaluationResult:
     """Evaluate a COA with a simple deterministic rollout-style score."""
+    state = _get_state(source)
     object_name = str(coa["object"])
     place_position = coa["place_position"]
     assert isinstance(place_position, tuple)
@@ -98,9 +107,9 @@ def evaluate_coa_with_simplified_mcts(
     return result
 
 
-def evaluate_coas(state: WorldState, coas: list[COA]) -> list[EvaluationResult]:
+def evaluate_coas(source: PlanningBackend | WorldState, coas: list[COA]) -> list[EvaluationResult]:
     """Evaluate a list of COAs in order."""
-    return [evaluate_coa_with_simplified_mcts(state, candidate_coa) for candidate_coa in coas]
+    return [evaluate_coa_with_simplified_mcts(source, candidate_coa) for candidate_coa in coas]
 
 
 def select_best_coa(results: list[EvaluationResult]) -> EvaluationResult:
