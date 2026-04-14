@@ -7,12 +7,13 @@ from spatial_map import FORBIDDEN, OBSTACLE, FREE, world_to_grid
 from visualizer import generate_visualizations
 from world_state import WorldState
 
+Action = dict[str, object]
 COA = dict[str, object]
 EvaluationResult = dict[str, object]
 
 
-def build_toy_world() -> WorldState:
-    """Create a deterministic toy world for end-to-end evaluation."""
+def build_benchmark_world() -> WorldState:
+    """Create a deterministic benchmark world for end-to-end evaluation."""
     world_state = WorldState(
         robot_position=(0, 0),
         obstacles=[
@@ -22,6 +23,8 @@ def build_toy_world() -> WorldState:
             (4, 4),
             (4, 5),
             (4, 6),
+            (2, 7),
+            (3, 7),
             (7, 3),
             (8, 3),
             (9, 3),
@@ -44,18 +47,23 @@ def build_toy_world() -> WorldState:
         "crate_blue", position=(5, 1), object_type="crate", graspable=True
     )
     world_state.update_object(
-        "crate_green", position=(3, 6), object_type="crate", graspable=True
+        "crate_green", position=(3, 8), object_type="crate", graspable=True
     )
     world_state.update_object(
         "crate_yellow", position=(8, 1), object_type="crate", graspable=True
     )
     world_state.update_object(
-        "crate_orange", position=(10, 6), object_type="crate", graspable=True
+        "crate_orange", position=(11, 8), object_type="crate", graspable=True
     )
     world_state.update_object(
         "statue", position=(9, 9), object_type="decor", graspable=False
     )
     return world_state
+
+
+def build_toy_world() -> WorldState:
+    """Backward-compatible alias for the current benchmark world."""
+    return build_benchmark_world()
 
 
 def summarize_world(state: WorldState) -> None:
@@ -107,8 +115,69 @@ def get_graspable_object_names(state: WorldState) -> list[str]:
     ]
 
 
-def generate_nearest_first_coas(state: WorldState) -> list[COA]:
-    """Generate COAs that prioritize the nearest movable objects."""
+def build_pick_place_action(object_name: str, place_position: tuple[int, int]) -> Action:
+    """Build a simple structured pick/place action."""
+    return {
+        "action_type": "pick_place",
+        "object": object_name,
+        "place_position": place_position,
+    }
+
+
+def build_coa(family: str, name: str, actions: list[Action]) -> COA:
+    """Build a COA that remains compatible with the current evaluator."""
+    first_action = actions[0]
+    return {
+        "family": family,
+        "name": name,
+        "actions": actions,
+        "object": first_action["object"],
+        "place_position": first_action["place_position"],
+    }
+
+
+def estimate_pick_cost(state: WorldState, object_name: str) -> int:
+    """Estimate how hard it is to reach an object from the robot."""
+    robot_position = state.get_robot_position()
+    object_position = state.get_object_position(object_name)
+    assert object_position is not None
+    return manhattan_distance(robot_position, object_position)
+
+
+def estimate_blocking_score(state: WorldState, object_name: str) -> int:
+    """Estimate how likely an object is to obstruct useful routes."""
+    object_position = state.get_object_position(object_name)
+    assert object_position is not None
+
+    score = 0
+    for obstacle in state.obstacles:
+        if manhattan_distance(object_position, obstacle) <= 2:
+            score += 2
+
+    for goal_positions in state.goal_regions.values():
+        for goal_position in goal_positions:
+            if manhattan_distance(object_position, goal_position) <= 4:
+                score += 1
+
+    if object_position[1] >= 5:
+        score += 2
+    return score
+
+
+def choose_goal_region_for_object(state: WorldState, object_name: str) -> tuple[str, tuple[int, int]]:
+    """Assign an object to a sensible goal region based on its location."""
+    object_position = state.get_object_position(object_name)
+    assert object_position is not None
+
+    if object_position[0] <= 3:
+        return "left_goal", state.goal_regions["left_goal"][0]
+    if object_position[0] >= 8:
+        return "right_goal", state.goal_regions["right_goal"][0]
+    return "staging_goal", state.goal_regions["staging_goal"][0]
+
+
+def generate_nearest_first_coa(state: WorldState) -> COA:
+    """Generate a COA that prioritizes the easiest objects to reach first."""
     robot_position = state.get_robot_position()
     sorted_names = sorted(
         get_graspable_object_names(state),
@@ -117,95 +186,103 @@ def generate_nearest_first_coas(state: WorldState) -> list[COA]:
             state.get_object_position(name) or robot_position,
         ),
     )
-    return [
-        {
-            "name": "nearest_first_move_crate_red_to_left_goal",
-            "object": sorted_names[0],
-            "place_position": state.goal_regions["left_goal"][0],
-        },
-        {
-            "name": "nearest_first_move_crate_blue_to_staging_goal",
-            "object": sorted_names[1],
-            "place_position": state.goal_regions["staging_goal"][0],
-        },
+    actions = [
+        build_pick_place_action(sorted_names[0], state.goal_regions["left_goal"][0]),
+        build_pick_place_action(sorted_names[1], state.goal_regions["staging_goal"][0]),
+        build_pick_place_action(sorted_names[2], state.goal_regions["left_goal"][1]),
     ]
+    return build_coa(
+        "nearest-first",
+        "nearest_first_progressive_delivery",
+        actions,
+    )
 
 
-def generate_clear_blocking_coas(state: WorldState) -> list[COA]:
-    """Generate COAs that prioritize clearing blocking objects first."""
-    return [
-        {
-            "name": "clear_blocking_move_crate_green_to_staging_goal",
-            "object": "crate_green",
-            "place_position": state.goal_regions["staging_goal"][1],
-        },
-        {
-            "name": "clear_blocking_move_crate_green_to_forbidden_zone",
-            "object": "crate_green",
-            "place_position": state.forbidden_zones[0],
-        },
+def generate_goal_grouped_coa(state: WorldState) -> COA:
+    """Generate a COA that groups objects by sensible goal regions."""
+    region_order = ["left_goal", "right_goal", "staging_goal"]
+    grouped_names: dict[str, list[str]] = {region_name: [] for region_name in region_order}
+
+    for object_name in get_graspable_object_names(state):
+        region_name, _ = choose_goal_region_for_object(state, object_name)
+        grouped_names[region_name].append(object_name)
+
+    actions: list[Action] = []
+    for region_name in region_order:
+        goal_position = state.goal_regions[region_name][0]
+        region_objects = sorted(
+            grouped_names[region_name],
+            key=lambda object_name: manhattan_distance(
+                state.get_object_position(object_name) or goal_position,
+                goal_position,
+            ),
+        )
+        for object_name in region_objects:
+            actions.append(build_pick_place_action(object_name, goal_position))
+
+    return build_coa(
+        "goal-grouped",
+        "goal_grouped_regional_sort",
+        actions,
+    )
+
+
+def generate_clear_blocking_first_coa(state: WorldState) -> COA:
+    """Generate a COA that clears likely blockers before easier deliveries."""
+    sorted_names = sorted(
+        get_graspable_object_names(state),
+        key=lambda name: (
+            -estimate_blocking_score(state, name),
+            estimate_pick_cost(state, name),
+        ),
+    )
+    actions = [
+        build_pick_place_action(sorted_names[0], state.goal_regions["staging_goal"][1]),
+        build_pick_place_action(sorted_names[1], state.goal_regions["left_goal"][1]),
+        build_pick_place_action(sorted_names[2], state.goal_regions["right_goal"][1]),
     ]
+    return build_coa(
+        "clear-blocking-first",
+        "clear_blocking_then_deliver",
+        actions,
+    )
 
 
-def generate_grouped_goal_coas(state: WorldState) -> list[COA]:
-    """Generate COAs that group objects by their target goal region."""
-    return [
-        {
-            "name": "group_left_move_crate_green_to_left_goal",
-            "object": "crate_green",
-            "place_position": state.goal_regions["left_goal"][1],
-        },
-        {
-            "name": "group_right_move_crate_yellow_to_right_goal",
-            "object": "crate_yellow",
-            "place_position": state.goal_regions["right_goal"][0],
-        },
-        {
-            "name": "group_right_move_crate_orange_to_right_goal",
-            "object": "crate_orange",
-            "place_position": state.goal_regions["right_goal"][1],
-        },
+def generate_failure_probe_coa(state: WorldState) -> COA:
+    """Generate a deliberately bad COA to expose failure behavior."""
+    statue_position = state.get_object_position("statue")
+    assert statue_position is not None
+    actions = [
+        build_pick_place_action("statue", state.goal_regions["left_goal"][1]),
+        build_pick_place_action("crate_blue", state.forbidden_zones[0]),
+        build_pick_place_action("crate_yellow", statue_position),
     ]
-
-
-def generate_failure_probe_coas(state: WorldState) -> list[COA]:
-    """Generate COAs that fail early and expose bad strategy choices."""
-    return [
-        {
-            "name": "bad_pick_move_statue_to_left_goal",
-            "object": "statue",
-            "place_position": state.goal_regions["left_goal"][1],
-        },
-        {
-            "name": "bad_place_move_crate_blue_to_forbidden_zone",
-            "object": "crate_blue",
-            "place_position": state.forbidden_zones[0],
-        },
-        {
-            "name": "bad_place_move_crate_yellow_to_occupied_goal",
-            "object": "crate_yellow",
-            "place_position": state.get_object_position("statue"),
-        },
-    ]
+    return build_coa(
+        "failure-probe",
+        "failure_probe_invalid_targets",
+        actions,
+    )
 
 
 def generate_coas(state: WorldState) -> list[COA]:
     """Generate deterministic COAs across several strategy styles."""
-    return (
-        generate_nearest_first_coas(state)
-        + generate_clear_blocking_coas(state)
-        + generate_grouped_goal_coas(state)
-        + generate_failure_probe_coas(state)
-    )
+    return [
+        generate_nearest_first_coa(state),
+        generate_goal_grouped_coa(state),
+        generate_clear_blocking_first_coa(state),
+        generate_failure_probe_coa(state),
+    ]
 
 
 def print_coas(coas: list[COA]) -> None:
     """Print candidate courses of action."""
     print("=== generated coas ===")
     for index, candidate_coa in enumerate(coas, start=1):
-        print(
-            f"{index}. {candidate_coa['name']}: pick {candidate_coa['object']} -> place at {candidate_coa['place_position']}"
-        )
+        print(f"{index}. [{candidate_coa['family']}] {candidate_coa['name']}")
+        for action_index, action in enumerate(candidate_coa["actions"], start=1):
+            print(
+                f"   {action_index}. pick {action['object']} -> place at {action['place_position']}"
+            )
 
 
 def print_score_table(results: list[EvaluationResult]) -> None:
@@ -268,7 +345,7 @@ def print_best_choice(
 
 def main() -> None:
     """Run the full toy planning prototype."""
-    world_state = build_toy_world()
+    world_state = build_benchmark_world()
     occupancy_grid = world_to_grid(world_state)
     coas = generate_coas(world_state)
 

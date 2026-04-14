@@ -24,12 +24,12 @@ def get_approach_points(position: Position) -> list[Position]:
 def compute_score(reachable: bool, action_feasible: bool, path_cost: int) -> int:
     """Return a simple reachability score."""
     if not reachable:
-        return -10
+        return -20
 
     if not action_feasible:
-        return -5 - path_cost
+        return -10 - (2 * path_cost)
 
-    return max(1, 20 - path_cost)
+    return max(1, 24 - (2 * path_cost))
 
 
 def build_reachability_result(
