@@ -7,6 +7,8 @@ from rule_checker import check_pick, check_place
 from spatial_map import GRID_HEIGHT, GRID_WIDTH, in_bounds, world_to_grid
 from world_state import Position, WorldState
 
+ReachabilityResult = dict[str, object]
+
 
 def get_approach_points(position: Position) -> list[Position]:
     """Return simple 4-connected approach points around a target."""
@@ -30,12 +32,31 @@ def compute_score(reachable: bool, action_feasible: bool, path_cost: int) -> int
     return max(1, 20 - path_cost)
 
 
+def build_reachability_result(
+    reachable: bool,
+    path: list[Position],
+    path_cost: int,
+    action_feasible: bool,
+    score: int,
+    reason: str,
+) -> ReachabilityResult:
+    """Build a consistent reachability result payload."""
+    return {
+        "reachable": reachable,
+        "path": path,
+        "path_cost": path_cost,
+        "action_feasible": action_feasible,
+        "score": score,
+        "reason": reason,
+    }
+
+
 def query_reachability(
     state: WorldState,
     action_type: str,
     target: str,
     place_position: Position | None = None,
-) -> dict[str, object]:
+) -> ReachabilityResult:
     """Evaluate whether an action is reachable and feasible in the current world."""
     robot_position = state.get_robot_position()
     grid = world_to_grid(state)
@@ -47,18 +68,11 @@ def query_reachability(
         if target_position is None:
             reason = f"pick failed: object '{target}' does not exist."
             print(reason)
-            return {
-                "reachable": False,
-                "path": [],
-                "path_cost": 0,
-                "action_feasible": False,
-                "score": -10,
-                "reason": reason,
-            }
+            return build_reachability_result(False, [], 0, False, -10, reason)
 
         print(f"Pick target position: {target_position}")
         best_path: list[Position] = []
-        best_cost: int | None = None
+        best_path_cost: int | None = None
 
         for approach in get_approach_points(target_position):
             if not in_bounds(approach, width=GRID_WIDTH, height=GRID_HEIGHT):
@@ -67,14 +81,14 @@ def query_reachability(
 
             print(f"Trying pick approach point: {approach}")
             path, path_cost = astar(grid, robot_position, approach)
-            if path and (best_cost is None or path_cost < best_cost):
+            if path and (best_path_cost is None or path_cost < best_path_cost):
                 best_path = path
-                best_cost = path_cost
+                best_path_cost = path_cost
 
         reachable = bool(best_path)
         rule_result = check_pick(state, target)
         action_feasible = bool(rule_result["valid"])
-        path_cost = best_cost if best_cost is not None else 0
+        path_cost = best_path_cost if best_path_cost is not None else 0
         reason = rule_result["reason"]
 
         if not reachable and action_feasible:
@@ -85,27 +99,20 @@ def query_reachability(
             f"Pick result: reachable={reachable}, feasible={action_feasible}, "
             f"path_cost={path_cost}, score={score}"
         )
-        return {
-            "reachable": reachable,
-            "path": best_path,
-            "path_cost": path_cost,
-            "action_feasible": action_feasible,
-            "score": score,
-            "reason": reason,
-        }
+        return build_reachability_result(
+            reachable,
+            best_path,
+            path_cost,
+            action_feasible,
+            score,
+            reason,
+        )
 
     if action_type == "place":
         if place_position is None:
             reason = "place failed: place_position is required."
             print(reason)
-            return {
-                "reachable": False,
-                "path": [],
-                "path_cost": 0,
-                "action_feasible": False,
-                "score": -10,
-                "reason": reason,
-            }
+            return build_reachability_result(False, [], 0, False, -10, reason)
 
         print(f"Place target position: {place_position}")
         path, path_cost = astar(grid, robot_position, place_position)
@@ -122,25 +129,18 @@ def query_reachability(
             f"Place result: reachable={reachable}, feasible={action_feasible}, "
             f"path_cost={path_cost}, score={score}"
         )
-        return {
-            "reachable": reachable,
-            "path": path,
-            "path_cost": path_cost,
-            "action_feasible": action_feasible,
-            "score": score,
-            "reason": reason,
-        }
+        return build_reachability_result(
+            reachable,
+            path,
+            path_cost,
+            action_feasible,
+            score,
+            reason,
+        )
 
     reason = f"unsupported action type: {action_type}"
     print(reason)
-    return {
-        "reachable": False,
-        "path": [],
-        "path_cost": 0,
-        "action_feasible": False,
-        "score": -10,
-        "reason": reason,
-    }
+    return build_reachability_result(False, [], 0, False, -10, reason)
 
 
 if __name__ == "__main__":

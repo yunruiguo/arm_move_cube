@@ -10,21 +10,21 @@ EvaluationResult = dict[str, object]
 
 
 def _print_action_summary(
-    action: str,
-    result: dict[str, object],
+    action_label: str,
+    action_result: dict[str, object],
 ) -> None:
     """Print a structured summary for a single action evaluation."""
-    print(f"  action: {action}")
+    print(f"  action: {action_label}")
     print(
         "  reachability:",
-        f"reachable={result['reachable']}, feasible={result['action_feasible']}",
+        f"reachable={action_result['reachable']}, feasible={action_result['action_feasible']}",
     )
     print(
         "  path details:",
-        f"path_cost={result['path_cost']}, path={result['path']}",
+        f"path_cost={action_result['path_cost']}, path={action_result['path']}",
     )
-    print("  score contribution:", result["score"])
-    print("  reason:", result["reason"])
+    print("  score contribution:", action_result["score"])
+    print("  reason:", action_result["reason"])
 
 
 def evaluate_coa_with_simplified_mcts(
@@ -100,9 +100,9 @@ def evaluate_coa_with_simplified_mcts(
 
 def evaluate_coas(state: WorldState, coas: list[COA]) -> list[EvaluationResult]:
     """Evaluate a list of COAs in order."""
-    return [evaluate_coa_with_simplified_mcts(state, coa) for coa in coas]
+    return [evaluate_coa_with_simplified_mcts(state, candidate_coa) for candidate_coa in coas]
 
 
 def select_best_coa(results: list[EvaluationResult]) -> EvaluationResult:
     """Select the highest scoring COA deterministically."""
-    return max(results, key=lambda item: int(item["score"]))
+    return max(results, key=lambda evaluation_result: int(evaluation_result["score"]))
