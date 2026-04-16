@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from backend import PlanningBackend, ToyWorldBackend
+import os
+
+from backend import IsaacLabBackend, PlanningBackend, ToyWorldBackend
 from benchmark_scenarios import build_benchmark_world as build_default_benchmark_world
 from mcts import evaluate_coas, select_best_coa
 from spatial_map import FORBIDDEN, OBSTACLE, FREE, world_to_grid
@@ -29,6 +31,18 @@ def build_benchmark_world() -> WorldState:
 def build_benchmark_backend() -> ToyWorldBackend:
     """Create the default toy backend for the benchmark world."""
     return ToyWorldBackend(build_benchmark_world())
+
+
+def build_backend(backend_name: str | None = None) -> PlanningBackend:
+    """Build the requested simulator backend while preserving toy as the default."""
+    selected_backend = (backend_name or os.environ.get("PLANNING_BACKEND", "toy")).lower()
+    if selected_backend == "toy":
+        return build_benchmark_backend()
+    if selected_backend == "isaaclab":
+        return IsaacLabBackend()
+    raise ValueError(
+        f"Unsupported backend '{selected_backend}'. Expected 'toy' or 'isaaclab'."
+    )
 
 
 def build_toy_world() -> WorldState:
@@ -153,6 +167,24 @@ def choose_goal_region_for_object(
     return "staging_goal", state.goal_regions["staging_goal"][0]
 
 
+def get_goal_position(
+    state: WorldState,
+    preferred_region_names: list[str],
+    preferred_index: int = 0,
+) -> tuple[str, tuple[int, int]]:
+    """Return a usable goal position, falling back gracefully for non-toy backends."""
+    for region_name in preferred_region_names:
+        positions = state.goal_regions.get(region_name, [])
+        if positions:
+            return region_name, positions[min(preferred_index, len(positions) - 1)]
+
+    for region_name, positions in state.goal_regions.items():
+        if positions:
+            return region_name, positions[min(preferred_index, len(positions) - 1)]
+
+    raise ValueError("No goal regions are available in the current world state.")
+
+
 def generate_nearest_first_coa(source: PlanningBackend | WorldState) -> COA:
     """Generate a COA that prioritizes the easiest objects to reach first."""
     state = _get_state(source)
@@ -164,11 +196,26 @@ def generate_nearest_first_coa(source: PlanningBackend | WorldState) -> COA:
             state.get_object_position(name) or robot_position,
         ),
     )
-    actions = [
-        build_pick_place_action(sorted_names[0], state.goal_regions["left_goal"][0]),
-        build_pick_place_action(sorted_names[1], state.goal_regions["staging_goal"][0]),
-        build_pick_place_action(sorted_names[2], state.goal_regions["left_goal"][1]),
-    ]
+    if (
+        "left_goal" in state.goal_regions
+        and "staging_goal" in state.goal_regions
+        and len(sorted_names) >= 3
+        and len(state.goal_regions["left_goal"]) >= 2
+    ):
+        actions = [
+            build_pick_place_action(sorted_names[0], state.goal_regions["left_goal"][0]),
+            build_pick_place_action(sorted_names[1], state.goal_regions["staging_goal"][0]),
+            build_pick_place_action(sorted_names[2], state.goal_regions["left_goal"][1]),
+        ]
+    else:
+        _, goal_position = get_goal_position(
+            state,
+            ["lift_goal", "goal", "target_goal"],
+        )
+        actions = [
+            build_pick_place_action(object_name, goal_position)
+            for object_name in sorted_names[: max(1, min(3, len(sorted_names)))]
+        ]
     return build_coa(
         "nearest-first",
         "nearest_first_progressive_delivery",
@@ -179,6 +226,9 @@ def generate_nearest_first_coa(source: PlanningBackend | WorldState) -> COA:
 def generate_goal_grouped_coa(source: PlanningBackend | WorldState) -> COA:
     """Generate a COA that groups objects by sensible goal regions."""
     state = _get_state(source)
+    if not {"left_goal", "right_goal", "staging_goal"}.issubset(state.goal_regions):
+        return generate_nearest_first_coa(source)
+
     region_order = ["left_goal", "right_goal", "staging_goal"]
     grouped_names: dict[str, list[str]] = {region_name: [] for region_name in region_order}
 
@@ -216,11 +266,29 @@ def generate_clear_blocking_first_coa(source: PlanningBackend | WorldState) -> C
             estimate_pick_cost(source, name),
         ),
     )
-    actions = [
-        build_pick_place_action(sorted_names[0], state.goal_regions["staging_goal"][1]),
-        build_pick_place_action(sorted_names[1], state.goal_regions["left_goal"][1]),
-        build_pick_place_action(sorted_names[2], state.goal_regions["right_goal"][1]),
-    ]
+    if (
+        "staging_goal" in state.goal_regions
+        and "left_goal" in state.goal_regions
+        and "right_goal" in state.goal_regions
+        and len(sorted_names) >= 3
+        and len(state.goal_regions["staging_goal"]) >= 2
+        and len(state.goal_regions["left_goal"]) >= 2
+        and len(state.goal_regions["right_goal"]) >= 2
+    ):
+        actions = [
+            build_pick_place_action(sorted_names[0], state.goal_regions["staging_goal"][1]),
+            build_pick_place_action(sorted_names[1], state.goal_regions["left_goal"][1]),
+            build_pick_place_action(sorted_names[2], state.goal_regions["right_goal"][1]),
+        ]
+    else:
+        _, goal_position = get_goal_position(
+            state,
+            ["lift_goal", "goal", "target_goal"],
+        )
+        actions = [
+            build_pick_place_action(object_name, goal_position)
+            for object_name in sorted_names[: max(1, min(2, len(sorted_names)))]
+        ]
     return build_coa(
         "clear-blocking-first",
         "clear_blocking_then_deliver",
@@ -231,6 +299,14 @@ def generate_clear_blocking_first_coa(source: PlanningBackend | WorldState) -> C
 def generate_failure_probe_coa(source: PlanningBackend | WorldState) -> COA:
     """Generate a deliberately bad COA to expose failure behavior."""
     state = _get_state(source)
+    if (
+        "statue" not in state.objects
+        or not state.forbidden_zones
+        or len(get_graspable_object_names(source)) < 2
+        or "left_goal" not in state.goal_regions
+    ):
+        return generate_nearest_first_coa(source)
+
     statue_position = state.get_object_position("statue")
     assert statue_position is not None
     actions = [
@@ -324,9 +400,36 @@ def print_best_choice(
         print(f"  next best reason: {runner_up['reason']}")
 
 
+def replay_selected_coa(
+    backend: PlanningBackend,
+    coas: list[COA],
+    best_result: EvaluationResult,
+) -> None:
+    """Replay the selected COA on the active backend when execution is supported."""
+    if isinstance(backend, ToyWorldBackend):
+        return
+
+    selected_coa = next(
+        candidate_coa
+        for candidate_coa in coas
+        if candidate_coa["name"] == best_result["name"]
+    )
+    replay_result = backend.simulate_action_sequence(selected_coa)
+
+    print("=== backend execution replay ===")
+    print("backend:", type(backend).__name__)
+    print("selected strategy:", replay_result["selected_strategy"])
+    print("total score:", replay_result["total_score"])
+    print("success:", replay_result["success"])
+    print("failed actions:", replay_result["failed_actions"])
+    print("completed actions:", replay_result["completed_actions"])
+    if replay_result["failure_reasons"]:
+        print("failure reasons:", replay_result["failure_reasons"])
+
+
 def main() -> None:
     """Run the full toy planning prototype."""
-    backend = build_benchmark_backend()
+    backend = build_backend()
     world_state = backend.get_current_state()
     occupancy_grid = world_to_grid(world_state)
     coas = generate_coas(backend)
@@ -336,11 +439,12 @@ def main() -> None:
     print_coas(coas)
 
     print("=== evaluating coas ===")
-    results = evaluate_coas(world_state, coas)
+    results = evaluate_coas(backend, coas)
 
     print_score_table(results)
     best_result = select_best_coa(results)
     print_best_choice(best_result, results)
+    replay_selected_coa(backend, coas, best_result)
     generated_files = generate_visualizations(world_state, results, best_result)
     print("=== visualization outputs ===")
     for generated_file in generated_files:
