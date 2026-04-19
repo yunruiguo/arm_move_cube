@@ -539,7 +539,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--scenario",
         choices=SCENARIO_NAMES,
-        default="easy_clear",
+        default="single_cube_goal",
+        # Default to the single-cube fallback so the real runner stays easy to rerun.
         help="Benchmark scenario to run. Use 'all' to iterate over all predefined scenarios.",
     )
     return parser.parse_args()

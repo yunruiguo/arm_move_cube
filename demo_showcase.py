@@ -32,7 +32,8 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--scenario",
-        default="showcase_delivery_gauntlet",
+        default="single_cube_goal",
+        # Keep the default demo runnable as a simple single-cube showcase.
         help="Named real scenario to use for the showcase demo.",
     )
     parser.add_argument(
