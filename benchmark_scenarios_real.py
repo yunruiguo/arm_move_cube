@@ -145,6 +145,54 @@ REAL_BENCHMARK_SCENARIOS: dict[str, RealScenario] = {
         obstacles=((21, 20), (21, 21), (22, 21), (23, 21)),
         forbidden_zones=((16, 21),),
     ),
+    "showcase_delivery_gauntlet": RealScenario(
+        name="showcase_delivery_gauntlet",
+        description=(
+            "A richer five-object tabletop delivery scene with mild blocking, asymmetric "
+            "travel costs, and clearly suboptimal fixed ordering."
+        ),
+        robot_grid_position=(20, 20),
+        fixed_order=(
+            "cube_far_blocked",
+            "cube_far_right",
+            "cube_center_anchor",
+            "cube_near_left",
+            "cube_near_right",
+        ),
+        object_grid_positions={
+            "cube_far_blocked": (29, 24),
+            "cube_far_right": (28, 27),
+            "cube_center_anchor": (24, 21),
+            "cube_near_left": (21, 18),
+            "cube_near_right": (22, 23),
+        },
+        object_sim_positions={
+            "cube_far_blocked": (0.64, 0.12, 0.0258),
+            "cube_far_right": (0.66, 0.20, 0.0258),
+            "cube_center_anchor": (0.53, 0.02, 0.0258),
+            "cube_near_left": (0.43, -0.09, 0.0258),
+            "cube_near_right": (0.45, 0.09, 0.0258),
+        },
+        object_goal_regions={
+            "cube_far_blocked": "right_goal",
+            "cube_far_right": "right_goal",
+            "cube_center_anchor": "staging_goal",
+            "cube_near_left": "left_goal",
+            "cube_near_right": "staging_goal",
+        },
+        goal_region_grid_positions={
+            "left_goal": (15, 16),
+            "staging_goal": (16, 20),
+            "right_goal": (15, 24),
+        },
+        goal_region_sim_positions={
+            "left_goal": (-0.27, -0.20, 0.12),
+            "staging_goal": (-0.21, 0.00, 0.12),
+            "right_goal": (-0.27, 0.22, 0.12),
+        },
+        obstacles=((22, 20), (23, 20), (24, 20), (25, 21), (26, 22)),
+        forbidden_zones=((17, 21), (18, 21)),
+    ),
 }
 
 
@@ -161,4 +209,3 @@ def get_real_benchmark_scenario(name: str) -> RealScenario:
 def build_real_benchmark_world(name: str) -> WorldState:
     """Build the planner-facing world state for a named real benchmark scenario."""
     return _build_world_state(get_real_benchmark_scenario(name))
-

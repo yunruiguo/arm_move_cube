@@ -88,7 +88,11 @@ def build_rollout_subtasks(config: RealScenario, coa: COA) -> list[dict[str, obj
         object_name = str(action["object"])
         place_position = action["place_position"]
         assert isinstance(place_position, tuple)
-        goal_region_name = goal_region_by_grid[place_position]
+        goal_region_name = (
+            str(action["goal_region"])
+            if "goal_region" in action
+            else goal_region_by_grid[place_position]
+        )
         subtasks.append(
             {
                 "object": object_name,

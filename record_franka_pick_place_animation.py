@@ -15,6 +15,7 @@ HEADLESS = True
 MAX_SIMULATION_STEPS = 1200
 MAX_SAVED_FRAMES = 180
 SUBTASK_TIMEOUT_SECONDS = 180
+MANIFEST_READY_GRACE_SECONDS = 5
 
 
 def resolve_storage_root() -> Path:
@@ -151,6 +152,9 @@ DEFAULT_ACTION_SEQUENCE = [
 Subtask = dict[str, object]
 
 
+ShowcaseFrankaPickPlace = FrankaPickPlace
+
+
 def _round_vector(values: tuple[float, float, float]) -> list[float]:
     """Round 3D values for readable debug output."""
     return [round(float(value), 4) for value in values]
@@ -165,6 +169,58 @@ def _format_object_pose_lines(object_snapshots: list[dict[str, object]]) -> list
             f"translation={snapshot['translation']}"
         )
     return lines
+
+
+def _euclidean_distance(
+    first: list[float] | tuple[float, float, float] | None,
+    second: list[float] | tuple[float, float, float] | None,
+) -> float | None:
+    """Compute a small 3D Euclidean distance helper for rollout checks."""
+    if first is None or second is None:
+        return None
+    return sum((float(a) - float(b)) ** 2 for a, b in zip(first, second)) ** 0.5
+
+
+def _extract_active_cube_translation(object_snapshots: list[dict[str, object]]) -> list[float] | None:
+    """Read the main physical cube pose from a stage snapshot when available."""
+    for snapshot in object_snapshots:
+        if snapshot.get("path") == "/World/Cube":
+            translation = snapshot.get("translation")
+            if isinstance(translation, list):
+                return translation
+    return None
+
+
+def _round_position_list(values: list[float] | tuple[float, float, float] | None) -> list[float] | None:
+    """Round a 3D position into a compact list."""
+    if values is None:
+        return None
+    return [round(float(value), 4) for value in values]
+
+
+def _expected_cube_rest_position(
+    cube_initial_position: tuple[float, float, float] | None,
+    target_position: tuple[float, float, float] | None,
+    explicit_expected_position: tuple[float, float, float] | list[float] | None = None,
+) -> list[float]:
+    """Build the expected resting cube position on the table for validation."""
+    if explicit_expected_position is not None:
+        return _round_vector(tuple(float(value) for value in explicit_expected_position))
+    if target_position is None:
+        target_position = (0.0, 0.0, 0.0)
+    z_value = cube_initial_position[2] if cube_initial_position is not None else 0.0258
+    return _round_vector((target_position[0], target_position[1], z_value))
+
+
+def _positions_match(
+    first: list[float] | None,
+    second: tuple[float, float, float] | None,
+    tolerance: float = 1e-3,
+) -> bool:
+    """Check whether two 3D positions are effectively the same."""
+    if first is None or second is None:
+        return False
+    return all(abs(float(a) - float(b)) <= tolerance for a, b in zip(first, second))
 
 
 def _capture_stage_object_snapshots() -> list[dict[str, object]]:
@@ -209,6 +265,38 @@ def _capture_stage_object_snapshots() -> list[dict[str, object]]:
     return object_snapshots
 
 
+def _build_annotation_map(scene_metadata: dict[str, object] | None) -> dict[str, dict[str, object]]:
+    """Read stable object annotations from the scenario metadata."""
+    if not scene_metadata:
+        return {}
+    object_annotations = scene_metadata.get("object_annotations")
+    if not isinstance(object_annotations, dict):
+        return {}
+    return {
+        str(object_name): annotation
+        for object_name, annotation in object_annotations.items()
+        if isinstance(annotation, dict)
+    }
+
+
+def _lookup_cube_id(scene_metadata: dict[str, object] | None, object_name: str) -> str:
+    """Resolve a stable object ID for logs and manifests."""
+    annotation_map = _build_annotation_map(scene_metadata)
+    annotation = annotation_map.get(object_name, {})
+    cube_id = annotation.get("cube_id")
+    if isinstance(cube_id, str):
+        return cube_id
+    return object_name
+
+
+def _hex_to_rgb(color_hex: str) -> tuple[int, int, int]:
+    """Convert a #RRGGBB string into integer RGB components."""
+    color_hex = color_hex.lstrip("#")
+    if len(color_hex) != 6:
+        return (120, 120, 120)
+    return tuple(int(color_hex[index : index + 2], 16) for index in (0, 2, 4))
+
+
 def write_debug_summary(summary_path: Path, summary_payload: dict[str, object]) -> None:
     """Persist a lightweight text summary next to the rollout outputs."""
     lines = [
@@ -216,7 +304,13 @@ def write_debug_summary(summary_path: Path, summary_payload: dict[str, object]) 
         f"planner: {summary_payload['planner_name']}",
         f"strategy: {summary_payload['selected_strategy']}",
         f"selected target object: {summary_payload['selected_target_object']}",
+        f"selected cube id: {summary_payload.get('selected_cube_id')}",
         f"target position: {summary_payload['target_position']}",
+        f"expected cube rest position: {summary_payload.get('expected_cube_position')}",
+        f"final active object translation: {summary_payload.get('final_active_object_translation')}",
+        f"position error: {summary_payload.get('position_error')}",
+        f"placement success: {summary_payload.get('placement_success')}",
+        f"id consistency passed: {summary_payload.get('id_consistency_passed')}",
         f"object-level subtasks: {summary_payload['object_level_subtasks']}",
         f"success: {summary_payload['success']}",
         f"simulation steps: {summary_payload['simulation_steps']}",
@@ -302,6 +396,79 @@ def copy_frame_sequence(frame_paths: list[Path], destination_dir: Path, start_in
     return copied_paths
 
 
+def annotate_frame(
+    frame_path: Path,
+    title: str,
+    subtitle: str,
+    footer_lines: list[str] | None = None,
+) -> None:
+    """Overlay a compact readable banner onto a saved frame."""
+    from PIL import Image, ImageDraw, ImageFont
+
+    image = Image.open(frame_path).convert("RGB")
+    draw = ImageDraw.Draw(image, "RGBA")
+    font = ImageFont.load_default()
+
+    footer_lines = footer_lines or []
+    footer_height = 18 * len(footer_lines) if footer_lines else 0
+    top_box_height = 54
+    draw.rounded_rectangle(
+        (10, 10, image.width - 10, 10 + top_box_height),
+        radius=10,
+        fill=(0, 0, 0, 175),
+    )
+    draw.text((24, 18), title, fill=(255, 255, 255), font=font)
+    draw.text((24, 34), subtitle, fill=(220, 220, 220), font=font)
+
+    if footer_lines:
+        footer_top = image.height - footer_height - 18
+        draw.rounded_rectangle(
+            (10, footer_top, image.width - 10, image.height - 10),
+            radius=10,
+            fill=(0, 0, 0, 150),
+        )
+        for line_index, line in enumerate(footer_lines):
+            draw.text(
+                (24, footer_top + 10 + line_index * 18),
+                line,
+                fill=(235, 235, 235),
+                font=font,
+            )
+
+    image.save(frame_path)
+    image.close()
+
+
+def create_text_card(
+    output_path: Path,
+    title: str,
+    body_lines: list[str],
+    width: int = CAMERA_WIDTH,
+    height: int = CAMERA_HEIGHT,
+) -> None:
+    """Create a simple intro/interstitial frame for the combined GIF."""
+    from PIL import Image, ImageDraw, ImageFont
+
+    image = Image.new("RGB", (width, height), color=(248, 248, 248))
+    draw = ImageDraw.Draw(image, "RGBA")
+    font = ImageFont.load_default()
+
+    draw.rounded_rectangle(
+        (30, 30, width - 30, height - 30),
+        radius=18,
+        fill=(245, 245, 245, 255),
+        outline=(40, 40, 40, 255),
+        width=2,
+    )
+    draw.text((56, 56), title, fill=(20, 20, 20), font=font)
+    text_top = 92
+    for line_index, line in enumerate(body_lines):
+        draw.text((56, text_top + line_index * 20), line, fill=(55, 55, 55), font=font)
+
+    image.save(output_path)
+    image.close()
+
+
 def parse_optional_vector(raw_value: str | None) -> tuple[float, float, float] | None:
     """Parse a JSON-encoded xyz vector when provided."""
     if not raw_value:
@@ -349,6 +516,8 @@ def run_single_subtask_subprocess(
         json.dumps(list(subtask["cube_initial_position"])),
         "--target-position",
         json.dumps(list(subtask["target_position"])),
+        "--expected-cube-position",
+        json.dumps(list(subtask.get("expected_cube_position", subtask["target_position"]))),
         "--scene-metadata-json",
         json.dumps(scene_metadata or {}),
         "--subtask-index",
@@ -356,16 +525,154 @@ def run_single_subtask_subprocess(
         "--total-subtasks",
         str(total_subtasks),
     ]
-    try:
-        subprocess.run(command, check=True, timeout=SUBTASK_TIMEOUT_SECONDS)
-    except subprocess.TimeoutExpired:
-        if not manifest_path.exists():
-            raise
-        print(
-            "[record_franka_pick_place_animation] subtask timed out after writing outputs:",
-            f"{subtask_index}/{total_subtasks} {subtask['object']}",
-        )
-    return json.loads(manifest_path.read_text(encoding="utf-8"))
+    process = subprocess.Popen(command)
+    manifest_ready_deadline: float | None = None
+
+    import time
+
+    start_time = time.monotonic()
+    while True:
+        return_code = process.poll()
+        if return_code is not None:
+            if return_code != 0 and not manifest_path.exists():
+                raise subprocess.CalledProcessError(return_code, command)
+            break
+
+        elapsed_seconds = time.monotonic() - start_time
+        if manifest_path.exists():
+            if manifest_ready_deadline is None:
+                manifest_ready_deadline = time.monotonic() + MANIFEST_READY_GRACE_SECONDS
+            elif time.monotonic() >= manifest_ready_deadline:
+                process.terminate()
+                try:
+                    process.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait(timeout=10)
+                print(
+                    "[record_franka_pick_place_animation] subtask outputs ready; "
+                    "terminated lingering process:",
+                    f"{subtask_index}/{total_subtasks} {subtask['object']}",
+                )
+                break
+
+        if elapsed_seconds >= SUBTASK_TIMEOUT_SECONDS:
+            if not manifest_path.exists():
+                process.kill()
+                process.wait(timeout=10)
+                raise subprocess.TimeoutExpired(command, SUBTASK_TIMEOUT_SECONDS)
+            process.terminate()
+            try:
+                process.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait(timeout=10)
+            print(
+                "[record_franka_pick_place_animation] subtask timed out after writing outputs:",
+                f"{subtask_index}/{total_subtasks} {subtask['object']}",
+            )
+            break
+
+        time.sleep(1)
+    summary = json.loads(manifest_path.read_text(encoding="utf-8"))
+    summary["manifest_path"] = str(manifest_path)
+    debug_summary_path = subtask_output_path / "debug_summary.txt"
+    summary["debug_summary_path"] = str(debug_summary_path)
+    return summary
+
+
+def clone_scene_metadata(scene_metadata: dict[str, object] | None) -> dict[str, object] | None:
+    """Clone scene metadata into a mutable structure."""
+    if not scene_metadata:
+        return None
+    return json.loads(json.dumps(scene_metadata))
+
+
+def build_frame_footer_lines(
+    scene_metadata: dict[str, object] | None,
+    selected_target_object: str,
+) -> list[str]:
+    """Build short footer lines describing all objects currently in the scene."""
+    if not scene_metadata:
+        return []
+    object_positions = scene_metadata.get("object_sim_positions")
+    if not isinstance(object_positions, dict):
+        return []
+    object_annotations = _build_annotation_map(scene_metadata)
+
+    footer_lines: list[str] = []
+    for object_name in sorted(object_positions):
+        raw_position = object_positions[object_name]
+        if not isinstance(raw_position, (list, tuple)) or len(raw_position) != 3:
+            continue
+        prefix = "*" if object_name == selected_target_object else "-"
+        rounded = [round(float(value), 3) for value in raw_position]
+        cube_id = object_annotations.get(object_name, {}).get("cube_id", object_name)
+        footer_lines.append(f"{prefix} {cube_id} {object_name}: {rounded}")
+    return footer_lines
+
+
+def build_intro_card_lines(
+    planner_name: str,
+    selected_strategy: str,
+    subtasks: list[Subtask],
+    scene_metadata: dict[str, object] | None,
+) -> list[str]:
+    """Create a clear legend page for the combined GIF."""
+    lines = [
+        f"planner: {planner_name}",
+        f"strategy: {selected_strategy}",
+        f"subtasks: {len(subtasks)}",
+        "",
+        "legend:",
+    ]
+    object_annotations = _build_annotation_map(scene_metadata)
+    for object_name in sorted(object_annotations):
+        annotation = object_annotations[object_name]
+        cube_id = annotation.get("cube_id", object_name)
+        goal_region = annotation.get("goal_region", "?")
+        color = annotation.get("color", "#777777")
+        lines.append(f"{cube_id} | {object_name} | goal={goal_region} | color={color}")
+    lines.extend(
+        [
+            "",
+            "note:",
+            "controller target is an end-effector pose above the table.",
+            "success is validated from the cube's final resting pose.",
+        ]
+    )
+    return lines
+
+
+def verify_id_consistency(
+    scene_metadata: dict[str, object] | None,
+    tracked_positions: dict[str, list[float]],
+    tolerance: float = 1e-3,
+) -> tuple[bool, list[str]]:
+    """Check whether carried-over object IDs still appear at the expected positions."""
+    if not scene_metadata or not tracked_positions:
+        return True, []
+    object_annotations = _build_annotation_map(scene_metadata)
+    object_positions = scene_metadata.get("object_sim_positions")
+    if not isinstance(object_positions, dict):
+        return True, []
+
+    mismatches: list[str] = []
+    for object_name, annotation in object_annotations.items():
+        cube_id = annotation.get("cube_id")
+        if not isinstance(cube_id, str) or cube_id not in tracked_positions:
+            continue
+        actual_position = object_positions.get(object_name)
+        expected_position = tracked_positions[cube_id]
+        if not isinstance(actual_position, list):
+            continue
+        distance = _euclidean_distance(actual_position, expected_position)
+        if distance is None or distance > tolerance:
+            mismatches.append(
+                f"{cube_id} {object_name}: expected={_round_position_list(expected_position)} "
+                f"actual={_round_position_list(actual_position)}"
+            )
+    return len(mismatches) == 0, mismatches
 
 
 def build_camera() -> Camera:
@@ -411,15 +718,8 @@ def spawn_context_cubes(
         return
 
     context_root = UsdGeom.Xform.Define(stage, "/World/ContextObjects")
-    color_cycle = [
-        Gf.Vec3f(0.85, 0.25, 0.25),
-        Gf.Vec3f(0.25, 0.55, 0.90),
-        Gf.Vec3f(0.25, 0.75, 0.40),
-        Gf.Vec3f(0.90, 0.70, 0.20),
-        Gf.Vec3f(0.70, 0.35, 0.85),
-    ]
+    annotation_map = _build_annotation_map(scene_metadata)
 
-    visible_index = 0
     for object_name, raw_position in object_sim_positions.items():
         if object_name == active_object_name:
             continue
@@ -429,8 +729,11 @@ def spawn_context_cubes(
         cube_path = f"{context_root.GetPath()}/{object_name}"
         cube = UsdGeom.Cube.Define(stage, cube_path)
         cube.CreateSizeAttr(1.0)
-        cube.CreateDisplayColorAttr([color_cycle[visible_index % len(color_cycle)]])
-        visible_index += 1
+        color_hex = str(annotation_map.get(object_name, {}).get("color", "#777777"))
+        color_rgb = _hex_to_rgb(color_hex)
+        cube.CreateDisplayColorAttr(
+            [Gf.Vec3f(color_rgb[0] / 255.0, color_rgb[1] / 255.0, color_rgb[2] / 255.0)]
+        )
 
         xform_api = UsdGeom.XformCommonAPI(cube)
         xform_api.SetTranslate(
@@ -446,6 +749,7 @@ def _record_single_subtask_rollout(
     selected_target_object: str,
     cube_initial_position: tuple[float, float, float] | None,
     target_position: tuple[float, float, float] | None,
+    expected_cube_position: tuple[float, float, float] | None,
     scene_metadata: dict[str, object] | None,
     subtask_index: int,
     total_subtasks: int,
@@ -456,7 +760,7 @@ def _record_single_subtask_rollout(
     subtask_output_path.mkdir(parents=True, exist_ok=True)
     frames_path.mkdir(parents=True, exist_ok=True)
 
-    controller = FrankaPickPlace()
+    controller = ShowcaseFrankaPickPlace()
     controller.setup_scene(
         cube_initial_position=_to_numpy_vector(cube_initial_position),
         target_position=_to_numpy_vector(target_position),
@@ -473,11 +777,14 @@ def _record_single_subtask_rollout(
     sim_utils.update_stage()
 
     spawned_objects = _capture_stage_object_snapshots()
+    selected_cube_id = _lookup_cube_id(scene_metadata, selected_target_object)
     print("[record_franka_pick_place_animation] reset debug snapshot:")
     print("  object-level subtasks:", total_subtasks)
     print("  current subtask:", f"{subtask_index}/{total_subtasks}")
     print("  selected target object:", selected_target_object)
+    print("  selected cube id:", selected_cube_id)
     print("  selected target position:", _round_vector(target_position or (0.0, 0.0, 0.0)))
+    print("  expected cube rest position:", _round_vector(expected_cube_position or (0.0, 0.0, 0.0)))
     print("  spawned objects after reset:")
     for line in _format_object_pose_lines(spawned_objects):
         print(f"    {line}")
@@ -519,19 +826,41 @@ def _record_single_subtask_rollout(
         "simulation_steps": simulation_step,
         "captured_frames": len(saved_frames),
     }
+    final_object_snapshots = _capture_stage_object_snapshots()
+    physical_cube_translation = _round_position_list(_extract_active_cube_translation(final_object_snapshots))
+    expected_rest_position = _expected_cube_rest_position(
+        cube_initial_position=cube_initial_position,
+        target_position=target_position,
+        explicit_expected_position=expected_cube_position,
+    )
+    final_active_object_translation = physical_cube_translation
+    position_error = _euclidean_distance(final_active_object_translation, expected_rest_position)
+    placement_success = (
+        position_error is not None
+        and position_error <= 0.06
+    )
     manifest_summary = {
         "scene_config": build_scene_config_summary(),
         "scene_metadata": scene_metadata or {},
         "planner_name": planner_name,
         "selected_strategy": selected_strategy,
         "selected_target_object": selected_target_object,
+        "selected_cube_id": selected_cube_id,
         "target_position": _round_vector(target_position or (0.0, 0.0, 0.0)),
+        "expected_cube_position": expected_rest_position,
         "object_level_subtasks": total_subtasks,
         "current_subtask": subtask_index,
         "spawned_objects": spawned_objects,
+        "final_object_snapshots": final_object_snapshots,
+        "physical_cube_translation": physical_cube_translation,
+        "final_active_object_translation": final_active_object_translation,
+        "position_error": round(position_error, 4) if position_error is not None else None,
+        "placement_success": bool(placement_success),
+        "id_consistency_passed": True,
+        "id_consistency_mismatches": [],
         "action_sequence": DEFAULT_ACTION_SEQUENCE,
         "final_state_summary": final_state_summary,
-        "success": controller.is_done(),
+        "success": bool(controller.is_done()) and bool(placement_success),
         "num_frames": len(saved_frames),
         "capture_interval": CAPTURE_INTERVAL,
         "simulation_steps": simulation_step,
@@ -565,24 +894,80 @@ def record_pick_place_rollout_sequence(
 
     combined_frame_paths: list[Path] = []
     subtask_summaries: list[dict[str, object]] = []
+    mutable_scene_metadata = clone_scene_metadata(scene_metadata)
+    tracked_positions_by_id: dict[str, list[float]] = {}
+    intro_frame = frames_path / "frame_0000.png"
+    create_text_card(
+        intro_frame,
+        title="Multi-object Franka rollout",
+        body_lines=build_intro_card_lines(
+            planner_name=planner_name,
+            selected_strategy=selected_strategy,
+            subtasks=subtasks,
+            scene_metadata=scene_metadata,
+        ),
+    )
+    combined_frame_paths.append(intro_frame)
 
     for subtask_index, subtask in enumerate(subtasks, start=1):
+        id_consistency_passed, id_mismatches = verify_id_consistency(
+            mutable_scene_metadata,
+            tracked_positions_by_id,
+        )
         subtask_summary = run_single_subtask_subprocess(
             output_path=output_path,
             planner_name=planner_name,
             selected_strategy=selected_strategy,
             subtask=subtask,
-            scene_metadata=scene_metadata,
+            scene_metadata=mutable_scene_metadata,
             subtask_index=subtask_index,
             total_subtasks=len(subtasks),
         )
+        subtask_summary["id_consistency_passed"] = id_consistency_passed
+        subtask_summary["id_consistency_mismatches"] = id_mismatches
+        subtask_summary["success"] = bool(subtask_summary["success"]) and bool(id_consistency_passed)
+        Path(subtask_summary["manifest_path"]).write_text(
+            json.dumps(subtask_summary, indent=2),
+            encoding="utf-8",
+        )
+        write_debug_summary(Path(subtask_summary["debug_summary_path"]), subtask_summary)
         source_frames = sorted(
             Path(subtask_summary["frames_dir"]).glob("frame_*.png")
         )
-        combined_frame_paths.extend(
-            copy_frame_sequence(source_frames, frames_path, len(combined_frame_paths))
+        copied_paths = copy_frame_sequence(source_frames, frames_path, len(combined_frame_paths))
+        footer_lines = build_frame_footer_lines(
+            mutable_scene_metadata,
+            str(subtask["object"]),
         )
+        title = (
+            f"Subtask {subtask_index}/{len(subtasks)}: "
+            f"{subtask.get('cube_id', subtask['object'])} {subtask['object']}"
+        )
+        subtitle = (
+            f"goal region: {subtask['goal_region']} | "
+            f"success={subtask_summary['success']} | "
+            f"placement={subtask_summary.get('placement_success')}"
+        )
+        for copied_path in copied_paths:
+            annotate_frame(
+                copied_path,
+                title=title,
+                subtitle=subtitle,
+                footer_lines=footer_lines,
+            )
+        combined_frame_paths.extend(copied_paths)
         subtask_summaries.append(subtask_summary)
+        if mutable_scene_metadata is not None:
+            object_positions = mutable_scene_metadata.get("object_sim_positions")
+            if isinstance(object_positions, dict):
+                final_translation = subtask_summary.get("final_active_object_translation")
+                if isinstance(final_translation, list) and len(final_translation) == 3:
+                    object_positions[str(subtask["object"])] = final_translation
+        final_translation = subtask_summary.get("final_active_object_translation")
+        if isinstance(final_translation, list) and len(final_translation) == 3:
+            tracked_positions_by_id[str(subtask.get("cube_id", subtask["object"]))] = final_translation
+        if not subtask_summary["success"]:
+            break
 
     if not combined_frame_paths:
         raise RuntimeError("No subtask frames were captured for the combined rollout.")
@@ -602,12 +987,23 @@ def record_pick_place_rollout_sequence(
         "planner_name": planner_name,
         "selected_strategy": selected_strategy,
         "selected_target_object": ", ".join(str(subtask["object"]) for subtask in subtasks),
+        "selected_cube_ids": [str(subtask.get("cube_id", subtask["object"])) for subtask in subtasks],
         "target_position": [subtask["target_position"] for subtask in subtasks],
         "object_level_subtasks": len(subtasks),
         "spawned_objects": subtask_summaries[-1]["spawned_objects"],
+        "tracked_positions_by_id": tracked_positions_by_id,
         "action_sequence": [str(subtask["object"]) for subtask in subtasks],
         "final_state_summary": final_state_summary,
         "success": all(summary["success"] for summary in subtask_summaries),
+        "completed_subtasks": len(subtask_summaries),
+        "failed_subtask_index": next(
+            (
+                index
+                for index, subtask_summary in enumerate(subtask_summaries, start=1)
+                if not subtask_summary["success"]
+            ),
+            None,
+        ),
         "num_frames": len(combined_frame_paths),
         "capture_interval": CAPTURE_INTERVAL,
         "simulation_steps": final_state_summary["simulation_steps"],
@@ -663,7 +1059,7 @@ def record_pick_place_rollout(
     output_path.mkdir(parents=True, exist_ok=True)
     frames_path.mkdir(parents=True, exist_ok=True)
 
-    controller = FrankaPickPlace()
+    controller = ShowcaseFrankaPickPlace()
     controller.setup_scene(
         cube_initial_position=_to_numpy_vector(cube_initial_position),
         target_position=_to_numpy_vector(target_position),
@@ -778,6 +1174,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--selected-target-object", default="cube")
     parser.add_argument("--cube-initial-position")
     parser.add_argument("--target-position")
+    parser.add_argument("--expected-cube-position")
     parser.add_argument("--scene-metadata-json")
     parser.add_argument("--subtask-index", type=int, default=1)
     parser.add_argument("--total-subtasks", type=int, default=1)
@@ -796,6 +1193,7 @@ def main() -> None:
                 selected_target_object=args.selected_target_object,
                 cube_initial_position=parse_optional_vector(args.cube_initial_position),
                 target_position=parse_optional_vector(args.target_position),
+                expected_cube_position=parse_optional_vector(args.expected_cube_position),
                 scene_metadata=parse_optional_json_dict(args.scene_metadata_json),
                 subtask_index=args.subtask_index,
                 total_subtasks=args.total_subtasks,

@@ -1,0 +1,4 @@
+scenario,planner,success_rate,avg_score,avg_steps,avg_failed_actions
+awkward_ordering,decision_pipeline,100.0,18.0,90.0,0.0
+easy_clear,fixed_order,100.0,10.0,100.0,0.0
+easy_clear,nearest_heuristic,0.0,6.0,140.0,1.0

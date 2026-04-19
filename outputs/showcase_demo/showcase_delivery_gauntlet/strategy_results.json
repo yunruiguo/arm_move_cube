@@ -1,0 +1,2738 @@
+{
+  "records": [
+    {
+      "planner_mode": "fixed_order",
+      "selected_strategy": "fixed_order_showcase_delivery_gauntlet",
+      "total_score": 97,
+      "success": true,
+      "completed_actions": 5,
+      "failed_actions": 0,
+      "failure_reasons": "",
+      "planning_log": "Fixed-order baseline follows the scenario's predefined sequence without reconsidering distance or blocking effects.",
+      "decision_rationale": "",
+      "planned_actions": [
+        "pick_place cube_far_blocked -> (15, 24)",
+        "pick_place cube_far_right -> (15, 23)",
+        "pick_place cube_center_anchor -> (16, 20)",
+        "pick_place cube_near_left -> (15, 16)",
+        "pick_place cube_near_right -> (17, 20)"
+      ],
+      "selected_object": "cube_far_blocked",
+      "selected_goal_region": "right_goal",
+      "coa": {
+        "family": "fixed-order",
+        "name": "fixed_order_showcase_delivery_gauntlet",
+        "actions": [
+          {
+            "action_type": "pick_place",
+            "object": "cube_far_blocked",
+            "place_position": [
+              15,
+              24
+            ],
+            "goal_region": "right_goal"
+          },
+          {
+            "action_type": "pick_place",
+            "object": "cube_far_right",
+            "place_position": [
+              15,
+              23
+            ],
+            "goal_region": "right_goal"
+          },
+          {
+            "action_type": "pick_place",
+            "object": "cube_center_anchor",
+            "place_position": [
+              16,
+              20
+            ],
+            "goal_region": "staging_goal"
+          },
+          {
+            "action_type": "pick_place",
+            "object": "cube_near_left",
+            "place_position": [
+              15,
+              16
+            ],
+            "goal_region": "left_goal"
+          },
+          {
+            "action_type": "pick_place",
+            "object": "cube_near_right",
+            "place_position": [
+              17,
+              20
+            ],
+            "goal_region": "staging_goal"
+          }
+        ],
+        "object": "cube_far_blocked",
+        "place_position": [
+          15,
+          24
+        ]
+      },
+      "step_outcomes": [
+        {
+          "object": "cube_far_blocked",
+          "place_position": [
+            15,
+            24
+          ],
+          "pick_result": {
+            "reachable": true,
+            "path": [
+              [
+                20,
+                20
+              ],
+              [
+                20,
+                21
+              ],
+              [
+                20,
+                22
+              ],
+              [
+                20,
+                23
+              ],
+              [
+                20,
+                24
+              ],
+              [
+                21,
+                24
+              ],
+              [
+                22,
+                24
+              ],
+              [
+                23,
+                24
+              ],
+              [
+                24,
+                24
+              ],
+              [
+                25,
+                24
+              ],
+              [
+                26,
+                24
+              ],
+              [
+                27,
+                24
+              ],
+              [
+                28,
+                24
+              ]
+            ],
+            "path_cost": 12,
+            "action_feasible": true,
+            "score": 1,
+            "reason": "pick valid: object 'cube_far_blocked' is graspable."
+          },
+          "place_result": {
+            "reachable": true,
+            "path": [
+              [
+                29,
+                24
+              ],
+              [
+                28,
+                24
+              ],
+              [
+                27,
+                24
+              ],
+              [
+                26,
+                24
+              ],
+              [
+                25,
+                24
+              ],
+              [
+                24,
+                24
+              ],
+              [
+                23,
+                24
+              ],
+              [
+                22,
+                24
+              ],
+              [
+                21,
+                24
+              ],
+              [
+                20,
+                24
+              ],
+              [
+                19,
+                24
+              ],
+              [
+                18,
+                24
+              ],
+              [
+                17,
+                24
+              ],
+              [
+                16,
+                24
+              ],
+              [
+                15,
+                24
+              ]
+            ],
+            "path_cost": 14,
+            "action_feasible": true,
+            "score": 1,
+            "reason": "place valid: target position (15, 24) is free."
+          },
+          "success": true,
+          "score": 12
+        },
+        {
+          "object": "cube_far_right",
+          "place_position": [
+            15,
+            23
+          ],
+          "pick_result": {
+            "reachable": true,
+            "path": [
+              [
+                16,
+                24
+              ],
+              [
+                16,
+                25
+              ],
+              [
+                16,
+                26
+              ],
+              [
+                16,
+                27
+              ],
+              [
+                17,
+                27
+              ],
+              [
+                18,
+                27
+              ],
+              [
+                19,
+                27
+              ],
+              [
+                20,
+                27
+              ],
+              [
+                21,
+                27
+              ],
+              [
+                22,
+                27
+              ],
+              [
+                23,
+                27
+              ],
+              [
+                24,
+                27
+              ],
+              [
+                25,
+                27
+              ],
+              [
+                26,
+                27
+              ],
+              [
+                27,
+                27
+              ]
+            ],
+            "path_cost": 14,
+            "action_feasible": true,
+            "score": 1,
+            "reason": "pick valid: object 'cube_far_right' is graspable."
+          },
+          "place_result": {
+            "reachable": true,
+            "path": [
+              [
+                28,
+                27
+              ],
+              [
+                27,
+                27
+              ],
+              [
+                26,
+                27
+              ],
+              [
+                25,
+                27
+              ],
+              [
+                24,
+                27
+              ],
+              [
+                23,
+                27
+              ],
+              [
+                22,
+                27
+              ],
+              [
+                21,
+                27
+              ],
+              [
+                20,
+                27
+              ],
+              [
+                19,
+                27
+              ],
+              [
+                18,
+                27
+              ],
+              [
+                17,
+                27
+              ],
+              [
+                16,
+                27
+              ],
+              [
+                16,
+                26
+              ],
+              [
+                16,
+                25
+              ],
+              [
+                16,
+                24
+              ],
+              [
+                16,
+                23
+              ],
+              [
+                15,
+                23
+              ]
+            ],
+            "path_cost": 17,
+            "action_feasible": true,
+            "score": 1,
+            "reason": "place valid: target position (15, 23) is free."
+          },
+          "success": true,
+          "score": 12
+        },
+        {
+          "object": "cube_center_anchor",
+          "place_position": [
+            16,
+            20
+          ],
+          "pick_result": {
+            "reachable": true,
+            "path": [
+              [
+                16,
+                23
+              ],
+              [
+                16,
+                22
+              ],
+              [
+                17,
+                22
+              ],
+              [
+                18,
+                22
+              ],
+              [
+                19,
+                22
+              ],
+              [
+                19,
+                21
+              ],
+              [
+                20,
+                21
+              ],
+              [
+                21,
+                21
+              ],
+              [
+                22,
+                21
+              ],
+              [
+                23,
+                21
+              ]
+            ],
+            "path_cost": 9,
+            "action_feasible": true,
+            "score": 6,
+            "reason": "pick valid: object 'cube_center_anchor' is graspable."
+          },
+          "place_result": {
+            "reachable": true,
+            "path": [
+              [
+                24,
+                21
+              ],
+              [
+                23,
+                21
+              ],
+              [
+                22,
+                21
+              ],
+              [
+                21,
+                21
+              ],
+              [
+                20,
+                21
+              ],
+              [
+                19,
+                21
+              ],
+              [
+                19,
+                20
+              ],
+              [
+                18,
+                20
+              ],
+              [
+                17,
+                20
+              ],
+              [
+                16,
+                20
+              ]
+            ],
+            "path_cost": 9,
+            "action_feasible": true,
+            "score": 6,
+            "reason": "place valid: target position (16, 20) is free."
+          },
+          "success": true,
+          "score": 22
+        },
+        {
+          "object": "cube_near_left",
+          "place_position": [
+            15,
+            16
+          ],
+          "pick_result": {
+            "reachable": true,
+            "path": [
+              [
+                17,
+                20
+              ],
+              [
+                17,
+                19
+              ],
+              [
+                17,
+                18
+              ],
+              [
+                18,
+                18
+              ],
+              [
+                19,
+                18
+              ],
+              [
+                20,
+                18
+              ]
+            ],
+            "path_cost": 5,
+            "action_feasible": true,
+            "score": 14,
+            "reason": "pick valid: object 'cube_near_left' is graspable."
+          },
+          "place_result": {
+            "reachable": true,
+            "path": [
+              [
+                21,
+                18
+              ],
+              [
+                20,
+                18
+              ],
+              [
+                19,
+                18
+              ],
+              [
+                18,
+                18
+              ],
+              [
+                17,
+                18
+              ],
+              [
+                16,
+                18
+              ],
+              [
+                15,
+                18
+              ],
+              [
+                15,
+                17
+              ],
+              [
+                15,
+                16
+              ]
+            ],
+            "path_cost": 8,
+            "action_feasible": true,
+            "score": 8,
+            "reason": "place valid: target position (15, 16) is free."
+          },
+          "success": true,
+          "score": 32
+        },
+        {
+          "object": "cube_near_right",
+          "place_position": [
+            17,
+            20
+          ],
+          "pick_result": {
+            "reachable": true,
+            "path": [
+              [
+                16,
+                16
+              ],
+              [
+                16,
+                17
+              ],
+              [
+                16,
+                18
+              ],
+              [
+                16,
+                19
+              ],
+              [
+                17,
+                19
+              ],
+              [
+                17,
+                20
+              ],
+              [
+                18,
+                20
+              ],
+              [
+                19,
+                20
+              ],
+              [
+                19,
+                21
+              ],
+              [
+                19,
+                22
+              ],
+              [
+                19,
+                23
+              ],
+              [
+                20,
+                23
+              ],
+              [
+                21,
+                23
+              ]
+            ],
+            "path_cost": 12,
+            "action_feasible": true,
+            "score": 1,
+            "reason": "pick valid: object 'cube_near_right' is graspable."
+          },
+          "place_result": {
+            "reachable": true,
+            "path": [
+              [
+                22,
+                23
+              ],
+              [
+                21,
+                23
+              ],
+              [
+                20,
+                23
+              ],
+              [
+                19,
+                23
+              ],
+              [
+                19,
+                22
+              ],
+              [
+                19,
+                21
+              ],
+              [
+                19,
+                20
+              ],
+              [
+                18,
+                20
+              ],
+              [
+                17,
+                20
+              ]
+            ],
+            "path_cost": 8,
+            "action_feasible": true,
+            "score": 8,
+            "reason": "place valid: target position (17, 20) is free."
+          },
+          "success": true,
+          "score": 19
+        }
+      ],
+      "coa_evaluation_summary": [],
+      "evaluation_log": "Reachability query: action=pick, target=cube_far_blocked, robot=(20, 20)\nPick target position: (29, 24)\nTrying pick approach point: (30, 24)\nA*: success, path found with length 14.\nTrying pick approach point: (28, 24)\nA*: success, path found with length 12.\nTrying pick approach point: (29, 25)\nA*: success, path found with length 14.\nTrying pick approach point: (29, 23)\nA*: success, path found with length 12.\nPick result: reachable=True, feasible=True, path_cost=12, score=1\nReachability query: action=place, target=cube_far_blocked, robot=(29, 24)\nPlace target position: (15, 24)\nA*: success, path found with length 14.\nPlace result: reachable=True, feasible=True, path_cost=14, score=1\nReachability query: action=pick, target=cube_far_right, robot=(16, 24)\nPick target position: (28, 27)\nTrying pick approach point: (29, 27)\nA*: success, path found with length 16.\nTrying pick approach point: (27, 27)\nA*: success, path found with length 14.\nTrying pick approach point: (28, 28)\nA*: success, path found with length 16.\nTrying pick approach point: (28, 26)\nA*: success, path found with length 14.\nPick result: reachable=True, feasible=True, path_cost=14, score=1\nReachability query: action=place, target=cube_far_right, robot=(28, 27)\nPlace target position: (15, 23)\nA*: success, path found with length 17.\nPlace result: reachable=True, feasible=True, path_cost=17, score=1\nReachability query: action=pick, target=cube_center_anchor, robot=(16, 23)\nPick target position: (24, 21)\nTrying pick approach point: (25, 21)\nA*: failed, goal is blocked or out of bounds.\nTrying pick approach point: (23, 21)\nA*: success, path found with length 9.\nTrying pick approach point: (24, 22)\nA*: success, path found with length 9.\nTrying pick approach point: (24, 20)\nA*: failed, goal is blocked or out of bounds.\nPick result: reachable=True, feasible=True, path_cost=9, score=6\nReachability query: action=place, target=cube_center_anchor, robot=(24, 21)\nPlace target position: (16, 20)\nA*: success, path found with length 9.\nPlace result: reachable=True, feasible=True, path_cost=9, score=6\nReachability query: action=pick, target=cube_near_left, robot=(17, 20)\nPick target position: (21, 18)\nTrying pick approach point: (22, 18)\nA*: success, path found with length 7.\nTrying pick approach point: (20, 18)\nA*: success, path found with length 5.\nTrying pick approach point: (21, 19)\nA*: success, path found with length 5.\nTrying pick approach point: (21, 17)\nA*: success, path found with length 7.\nPick result: reachable=True, feasible=True, path_cost=5, score=14\nReachability query: action=place, target=cube_near_left, robot=(21, 18)\nPlace target position: (15, 16)\nA*: success, path found with length 8.\nPlace result: reachable=True, feasible=True, path_cost=8, score=8\nReachability query: action=pick, target=cube_near_right, robot=(16, 16)\nPick target position: (22, 23)\nTrying pick approach point: (23, 23)\nA*: success, path found with length 14.\nTrying pick approach point: (21, 23)\nA*: success, path found with length 12.\nTrying pick approach point: (22, 24)\nA*: success, path found with length 14.\nTrying pick approach point: (22, 22)\nA*: success, path found with length 12.\nPick result: reachable=True, feasible=True, path_cost=12, score=1\nReachability query: action=place, target=cube_near_right, robot=(22, 23)\nPlace target position: (17, 20)\nA*: success, path found with length 8.\nPlace result: reachable=True, feasible=True, path_cost=8, score=8"
+    },
+    {
+      "planner_mode": "nearest_first",
+      "selected_strategy": "nearest_first_showcase_delivery_gauntlet",
+      "total_score": 107,
+      "success": true,
+      "completed_actions": 5,
+      "failed_actions": 0,
+      "failure_reasons": "",
+      "planning_log": "Nearest-first sorts every object by planner-grid Manhattan distance from the robot.",
+      "decision_rationale": "",
+      "planned_actions": [
+        "pick_place cube_near_left -> (15, 16)",
+        "pick_place cube_center_anchor -> (16, 20)",
+        "pick_place cube_near_right -> (17, 20)",
+        "pick_place cube_far_blocked -> (15, 24)",
+        "pick_place cube_far_right -> (15, 23)"
+      ],
+      "selected_object": "cube_near_left",
+      "selected_goal_region": "left_goal",
+      "coa": {
+        "family": "nearest-first",
+        "name": "nearest_first_showcase_delivery_gauntlet",
+        "actions": [
+          {
+            "action_type": "pick_place",
+            "object": "cube_near_left",
+            "place_position": [
+              15,
+              16
+            ],
+            "goal_region": "left_goal"
+          },
+          {
+            "action_type": "pick_place",
+            "object": "cube_center_anchor",
+            "place_position": [
+              16,
+              20
+            ],
+            "goal_region": "staging_goal"
+          },
+          {
+            "action_type": "pick_place",
+            "object": "cube_near_right",
+            "place_position": [
+              17,
+              20
+            ],
+            "goal_region": "staging_goal"
+          },
+          {
+            "action_type": "pick_place",
+            "object": "cube_far_blocked",
+            "place_position": [
+              15,
+              24
+            ],
+            "goal_region": "right_goal"
+          },
+          {
+            "action_type": "pick_place",
+            "object": "cube_far_right",
+            "place_position": [
+              15,
+              23
+            ],
+            "goal_region": "right_goal"
+          }
+        ],
+        "object": "cube_near_left",
+        "place_position": [
+          15,
+          16
+        ]
+      },
+      "step_outcomes": [
+        {
+          "object": "cube_near_left",
+          "place_position": [
+            15,
+            16
+          ],
+          "pick_result": {
+            "reachable": true,
+            "path": [
+              [
+                20,
+                20
+              ],
+              [
+                20,
+                19
+              ],
+              [
+                20,
+                18
+              ]
+            ],
+            "path_cost": 2,
+            "action_feasible": true,
+            "score": 20,
+            "reason": "pick valid: object 'cube_near_left' is graspable."
+          },
+          "place_result": {
+            "reachable": true,
+            "path": [
+              [
+                21,
+                18
+              ],
+              [
+                20,
+                18
+              ],
+              [
+                19,
+                18
+              ],
+              [
+                18,
+                18
+              ],
+              [
+                17,
+                18
+              ],
+              [
+                16,
+                18
+              ],
+              [
+                15,
+                18
+              ],
+              [
+                15,
+                17
+              ],
+              [
+                15,
+                16
+              ]
+            ],
+            "path_cost": 8,
+            "action_feasible": true,
+            "score": 8,
+            "reason": "place valid: target position (15, 16) is free."
+          },
+          "success": true,
+          "score": 38
+        },
+        {
+          "object": "cube_center_anchor",
+          "place_position": [
+            16,
+            20
+          ],
+          "pick_result": {
+            "reachable": true,
+            "path": [
+              [
+                16,
+                16
+              ],
+              [
+                16,
+                17
+              ],
+              [
+                16,
+                18
+              ],
+              [
+                16,
+                19
+              ],
+              [
+                16,
+                20
+              ],
+              [
+                17,
+                20
+              ],
+              [
+                18,
+                20
+              ],
+              [
+                19,
+                20
+              ],
+              [
+                19,
+                21
+              ],
+              [
+                20,
+                21
+              ],
+              [
+                21,
+                21
+              ],
+              [
+                22,
+                21
+              ],
+              [
+                23,
+                21
+              ]
+            ],
+            "path_cost": 12,
+            "action_feasible": true,
+            "score": 1,
+            "reason": "pick valid: object 'cube_center_anchor' is graspable."
+          },
+          "place_result": {
+            "reachable": true,
+            "path": [
+              [
+                24,
+                21
+              ],
+              [
+                23,
+                21
+              ],
+              [
+                22,
+                21
+              ],
+              [
+                21,
+                21
+              ],
+              [
+                20,
+                21
+              ],
+              [
+                19,
+                21
+              ],
+              [
+                19,
+                20
+              ],
+              [
+                18,
+                20
+              ],
+              [
+                17,
+                20
+              ],
+              [
+                16,
+                20
+              ]
+            ],
+            "path_cost": 9,
+            "action_feasible": true,
+            "score": 6,
+            "reason": "place valid: target position (16, 20) is free."
+          },
+          "success": true,
+          "score": 17
+        },
+        {
+          "object": "cube_near_right",
+          "place_position": [
+            17,
+            20
+          ],
+          "pick_result": {
+            "reachable": true,
+            "path": [
+              [
+                17,
+                20
+              ],
+              [
+                18,
+                20
+              ],
+              [
+                19,
+                20
+              ],
+              [
+                19,
+                21
+              ],
+              [
+                19,
+                22
+              ],
+              [
+                19,
+                23
+              ],
+              [
+                20,
+                23
+              ],
+              [
+                21,
+                23
+              ]
+            ],
+            "path_cost": 7,
+            "action_feasible": true,
+            "score": 10,
+            "reason": "pick valid: object 'cube_near_right' is graspable."
+          },
+          "place_result": {
+            "reachable": true,
+            "path": [
+              [
+                22,
+                23
+              ],
+              [
+                21,
+                23
+              ],
+              [
+                20,
+                23
+              ],
+              [
+                19,
+                23
+              ],
+              [
+                19,
+                22
+              ],
+              [
+                19,
+                21
+              ],
+              [
+                19,
+                20
+              ],
+              [
+                18,
+                20
+              ],
+              [
+                17,
+                20
+              ]
+            ],
+            "path_cost": 8,
+            "action_feasible": true,
+            "score": 8,
+            "reason": "place valid: target position (17, 20) is free."
+          },
+          "success": true,
+          "score": 28
+        },
+        {
+          "object": "cube_far_blocked",
+          "place_position": [
+            15,
+            24
+          ],
+          "pick_result": {
+            "reachable": true,
+            "path": [
+              [
+                18,
+                20
+              ],
+              [
+                19,
+                20
+              ],
+              [
+                19,
+                21
+              ],
+              [
+                19,
+                22
+              ],
+              [
+                19,
+                23
+              ],
+              [
+                19,
+                24
+              ],
+              [
+                20,
+                24
+              ],
+              [
+                21,
+                24
+              ],
+              [
+                22,
+                24
+              ],
+              [
+                23,
+                24
+              ],
+              [
+                24,
+                24
+              ],
+              [
+                25,
+                24
+              ],
+              [
+                26,
+                24
+              ],
+              [
+                27,
+                24
+              ],
+              [
+                28,
+                24
+              ]
+            ],
+            "path_cost": 14,
+            "action_feasible": true,
+            "score": 1,
+            "reason": "pick valid: object 'cube_far_blocked' is graspable."
+          },
+          "place_result": {
+            "reachable": true,
+            "path": [
+              [
+                29,
+                24
+              ],
+              [
+                28,
+                24
+              ],
+              [
+                27,
+                24
+              ],
+              [
+                26,
+                24
+              ],
+              [
+                25,
+                24
+              ],
+              [
+                24,
+                24
+              ],
+              [
+                23,
+                24
+              ],
+              [
+                22,
+                24
+              ],
+              [
+                21,
+                24
+              ],
+              [
+                20,
+                24
+              ],
+              [
+                19,
+                24
+              ],
+              [
+                18,
+                24
+              ],
+              [
+                17,
+                24
+              ],
+              [
+                16,
+                24
+              ],
+              [
+                15,
+                24
+              ]
+            ],
+            "path_cost": 14,
+            "action_feasible": true,
+            "score": 1,
+            "reason": "place valid: target position (15, 24) is free."
+          },
+          "success": true,
+          "score": 12
+        },
+        {
+          "object": "cube_far_right",
+          "place_position": [
+            15,
+            23
+          ],
+          "pick_result": {
+            "reachable": true,
+            "path": [
+              [
+                16,
+                24
+              ],
+              [
+                16,
+                25
+              ],
+              [
+                16,
+                26
+              ],
+              [
+                16,
+                27
+              ],
+              [
+                17,
+                27
+              ],
+              [
+                18,
+                27
+              ],
+              [
+                19,
+                27
+              ],
+              [
+                20,
+                27
+              ],
+              [
+                21,
+                27
+              ],
+              [
+                22,
+                27
+              ],
+              [
+                23,
+                27
+              ],
+              [
+                24,
+                27
+              ],
+              [
+                25,
+                27
+              ],
+              [
+                26,
+                27
+              ],
+              [
+                27,
+                27
+              ]
+            ],
+            "path_cost": 14,
+            "action_feasible": true,
+            "score": 1,
+            "reason": "pick valid: object 'cube_far_right' is graspable."
+          },
+          "place_result": {
+            "reachable": true,
+            "path": [
+              [
+                28,
+                27
+              ],
+              [
+                27,
+                27
+              ],
+              [
+                26,
+                27
+              ],
+              [
+                25,
+                27
+              ],
+              [
+                24,
+                27
+              ],
+              [
+                23,
+                27
+              ],
+              [
+                22,
+                27
+              ],
+              [
+                21,
+                27
+              ],
+              [
+                20,
+                27
+              ],
+              [
+                19,
+                27
+              ],
+              [
+                18,
+                27
+              ],
+              [
+                17,
+                27
+              ],
+              [
+                16,
+                27
+              ],
+              [
+                16,
+                26
+              ],
+              [
+                16,
+                25
+              ],
+              [
+                16,
+                24
+              ],
+              [
+                16,
+                23
+              ],
+              [
+                15,
+                23
+              ]
+            ],
+            "path_cost": 17,
+            "action_feasible": true,
+            "score": 1,
+            "reason": "place valid: target position (15, 23) is free."
+          },
+          "success": true,
+          "score": 12
+        }
+      ],
+      "coa_evaluation_summary": [],
+      "evaluation_log": "Reachability query: action=pick, target=cube_near_left, robot=(20, 20)\nPick target position: (21, 18)\nTrying pick approach point: (22, 18)\nA*: success, path found with length 4.\nTrying pick approach point: (20, 18)\nA*: success, path found with length 2.\nTrying pick approach point: (21, 19)\nA*: success, path found with length 2.\nTrying pick approach point: (21, 17)\nA*: success, path found with length 4.\nPick result: reachable=True, feasible=True, path_cost=2, score=20\nReachability query: action=place, target=cube_near_left, robot=(21, 18)\nPlace target position: (15, 16)\nA*: success, path found with length 8.\nPlace result: reachable=True, feasible=True, path_cost=8, score=8\nReachability query: action=pick, target=cube_center_anchor, robot=(16, 16)\nPick target position: (24, 21)\nTrying pick approach point: (25, 21)\nA*: failed, goal is blocked or out of bounds.\nTrying pick approach point: (23, 21)\nA*: success, path found with length 12.\nTrying pick approach point: (24, 22)\nA*: success, path found with length 14.\nTrying pick approach point: (24, 20)\nA*: failed, goal is blocked or out of bounds.\nPick result: reachable=True, feasible=True, path_cost=12, score=1\nReachability query: action=place, target=cube_center_anchor, robot=(24, 21)\nPlace target position: (16, 20)\nA*: success, path found with length 9.\nPlace result: reachable=True, feasible=True, path_cost=9, score=6\nReachability query: action=pick, target=cube_near_right, robot=(17, 20)\nPick target position: (22, 23)\nTrying pick approach point: (23, 23)\nA*: success, path found with length 9.\nTrying pick approach point: (21, 23)\nA*: success, path found with length 7.\nTrying pick approach point: (22, 24)\nA*: success, path found with length 9.\nTrying pick approach point: (22, 22)\nA*: success, path found with length 7.\nPick result: reachable=True, feasible=True, path_cost=7, score=10\nReachability query: action=place, target=cube_near_right, robot=(22, 23)\nPlace target position: (17, 20)\nA*: success, path found with length 8.\nPlace result: reachable=True, feasible=True, path_cost=8, score=8\nReachability query: action=pick, target=cube_far_blocked, robot=(18, 20)\nPick target position: (29, 24)\nTrying pick approach point: (30, 24)\nA*: success, path found with length 16.\nTrying pick approach point: (28, 24)\nA*: success, path found with length 14.\nTrying pick approach point: (29, 25)\nA*: success, path found with length 16.\nTrying pick approach point: (29, 23)\nA*: success, path found with length 14.\nPick result: reachable=True, feasible=True, path_cost=14, score=1\nReachability query: action=place, target=cube_far_blocked, robot=(29, 24)\nPlace target position: (15, 24)\nA*: success, path found with length 14.\nPlace result: reachable=True, feasible=True, path_cost=14, score=1\nReachability query: action=pick, target=cube_far_right, robot=(16, 24)\nPick target position: (28, 27)\nTrying pick approach point: (29, 27)\nA*: success, path found with length 16.\nTrying pick approach point: (27, 27)\nA*: success, path found with length 14.\nTrying pick approach point: (28, 28)\nA*: success, path found with length 16.\nTrying pick approach point: (28, 26)\nA*: success, path found with length 14.\nPick result: reachable=True, feasible=True, path_cost=14, score=1\nReachability query: action=place, target=cube_far_right, robot=(28, 27)\nPlace target position: (15, 23)\nA*: success, path found with length 17.\nPlace result: reachable=True, feasible=True, path_cost=17, score=1"
+    },
+    {
+      "planner_mode": "clear_blocking_first",
+      "selected_strategy": "clear_blocking_first_showcase_delivery_gauntlet",
+      "total_score": 120,
+      "success": true,
+      "completed_actions": 5,
+      "failed_actions": 0,
+      "failure_reasons": "",
+      "planning_log": "Clear-blocking-first prioritizes objects near planner obstacles or central routes, then breaks ties by distance.",
+      "decision_rationale": "",
+      "planned_actions": [
+        "pick_place cube_center_anchor -> (16, 20)",
+        "pick_place cube_near_left -> (15, 16)",
+        "pick_place cube_far_blocked -> (15, 24)",
+        "pick_place cube_far_right -> (15, 23)",
+        "pick_place cube_near_right -> (17, 20)"
+      ],
+      "selected_object": "cube_center_anchor",
+      "selected_goal_region": "staging_goal",
+      "coa": {
+        "family": "clear-blocking-first",
+        "name": "clear_blocking_first_showcase_delivery_gauntlet",
+        "actions": [
+          {
+            "action_type": "pick_place",
+            "object": "cube_center_anchor",
+            "place_position": [
+              16,
+              20
+            ],
+            "goal_region": "staging_goal"
+          },
+          {
+            "action_type": "pick_place",
+            "object": "cube_near_left",
+            "place_position": [
+              15,
+              16
+            ],
+            "goal_region": "left_goal"
+          },
+          {
+            "action_type": "pick_place",
+            "object": "cube_far_blocked",
+            "place_position": [
+              15,
+              24
+            ],
+            "goal_region": "right_goal"
+          },
+          {
+            "action_type": "pick_place",
+            "object": "cube_far_right",
+            "place_position": [
+              15,
+              23
+            ],
+            "goal_region": "right_goal"
+          },
+          {
+            "action_type": "pick_place",
+            "object": "cube_near_right",
+            "place_position": [
+              17,
+              20
+            ],
+            "goal_region": "staging_goal"
+          }
+        ],
+        "object": "cube_center_anchor",
+        "place_position": [
+          16,
+          20
+        ]
+      },
+      "step_outcomes": [
+        {
+          "object": "cube_center_anchor",
+          "place_position": [
+            16,
+            20
+          ],
+          "pick_result": {
+            "reachable": true,
+            "path": [
+              [
+                20,
+                20
+              ],
+              [
+                20,
+                21
+              ],
+              [
+                21,
+                21
+              ],
+              [
+                22,
+                21
+              ],
+              [
+                23,
+                21
+              ]
+            ],
+            "path_cost": 4,
+            "action_feasible": true,
+            "score": 16,
+            "reason": "pick valid: object 'cube_center_anchor' is graspable."
+          },
+          "place_result": {
+            "reachable": true,
+            "path": [
+              [
+                24,
+                21
+              ],
+              [
+                23,
+                21
+              ],
+              [
+                22,
+                21
+              ],
+              [
+                21,
+                21
+              ],
+              [
+                20,
+                21
+              ],
+              [
+                19,
+                21
+              ],
+              [
+                19,
+                20
+              ],
+              [
+                18,
+                20
+              ],
+              [
+                17,
+                20
+              ],
+              [
+                16,
+                20
+              ]
+            ],
+            "path_cost": 9,
+            "action_feasible": true,
+            "score": 6,
+            "reason": "place valid: target position (16, 20) is free."
+          },
+          "success": true,
+          "score": 32
+        },
+        {
+          "object": "cube_near_left",
+          "place_position": [
+            15,
+            16
+          ],
+          "pick_result": {
+            "reachable": true,
+            "path": [
+              [
+                17,
+                20
+              ],
+              [
+                17,
+                19
+              ],
+              [
+                17,
+                18
+              ],
+              [
+                18,
+                18
+              ],
+              [
+                19,
+                18
+              ],
+              [
+                20,
+                18
+              ]
+            ],
+            "path_cost": 5,
+            "action_feasible": true,
+            "score": 14,
+            "reason": "pick valid: object 'cube_near_left' is graspable."
+          },
+          "place_result": {
+            "reachable": true,
+            "path": [
+              [
+                21,
+                18
+              ],
+              [
+                20,
+                18
+              ],
+              [
+                19,
+                18
+              ],
+              [
+                18,
+                18
+              ],
+              [
+                17,
+                18
+              ],
+              [
+                16,
+                18
+              ],
+              [
+                15,
+                18
+              ],
+              [
+                15,
+                17
+              ],
+              [
+                15,
+                16
+              ]
+            ],
+            "path_cost": 8,
+            "action_feasible": true,
+            "score": 8,
+            "reason": "place valid: target position (15, 16) is free."
+          },
+          "success": true,
+          "score": 32
+        },
+        {
+          "object": "cube_far_blocked",
+          "place_position": [
+            15,
+            24
+          ],
+          "pick_result": {
+            "reachable": true,
+            "path": [
+              [
+                16,
+                16
+              ],
+              [
+                16,
+                17
+              ],
+              [
+                16,
+                18
+              ],
+              [
+                16,
+                19
+              ],
+              [
+                17,
+                19
+              ],
+              [
+                17,
+                20
+              ],
+              [
+                18,
+                20
+              ],
+              [
+                19,
+                20
+              ],
+              [
+                19,
+                21
+              ],
+              [
+                19,
+                22
+              ],
+              [
+                19,
+                23
+              ],
+              [
+                19,
+                24
+              ],
+              [
+                20,
+                24
+              ],
+              [
+                21,
+                24
+              ],
+              [
+                22,
+                24
+              ],
+              [
+                23,
+                24
+              ],
+              [
+                24,
+                24
+              ],
+              [
+                25,
+                24
+              ],
+              [
+                26,
+                24
+              ],
+              [
+                27,
+                24
+              ],
+              [
+                28,
+                24
+              ]
+            ],
+            "path_cost": 20,
+            "action_feasible": true,
+            "score": 1,
+            "reason": "pick valid: object 'cube_far_blocked' is graspable."
+          },
+          "place_result": {
+            "reachable": true,
+            "path": [
+              [
+                29,
+                24
+              ],
+              [
+                28,
+                24
+              ],
+              [
+                27,
+                24
+              ],
+              [
+                26,
+                24
+              ],
+              [
+                25,
+                24
+              ],
+              [
+                24,
+                24
+              ],
+              [
+                23,
+                24
+              ],
+              [
+                22,
+                24
+              ],
+              [
+                21,
+                24
+              ],
+              [
+                20,
+                24
+              ],
+              [
+                19,
+                24
+              ],
+              [
+                18,
+                24
+              ],
+              [
+                17,
+                24
+              ],
+              [
+                16,
+                24
+              ],
+              [
+                15,
+                24
+              ]
+            ],
+            "path_cost": 14,
+            "action_feasible": true,
+            "score": 1,
+            "reason": "place valid: target position (15, 24) is free."
+          },
+          "success": true,
+          "score": 12
+        },
+        {
+          "object": "cube_far_right",
+          "place_position": [
+            15,
+            23
+          ],
+          "pick_result": {
+            "reachable": true,
+            "path": [
+              [
+                16,
+                24
+              ],
+              [
+                16,
+                25
+              ],
+              [
+                16,
+                26
+              ],
+              [
+                16,
+                27
+              ],
+              [
+                17,
+                27
+              ],
+              [
+                18,
+                27
+              ],
+              [
+                19,
+                27
+              ],
+              [
+                20,
+                27
+              ],
+              [
+                21,
+                27
+              ],
+              [
+                22,
+                27
+              ],
+              [
+                23,
+                27
+              ],
+              [
+                24,
+                27
+              ],
+              [
+                25,
+                27
+              ],
+              [
+                26,
+                27
+              ],
+              [
+                27,
+                27
+              ]
+            ],
+            "path_cost": 14,
+            "action_feasible": true,
+            "score": 1,
+            "reason": "pick valid: object 'cube_far_right' is graspable."
+          },
+          "place_result": {
+            "reachable": true,
+            "path": [
+              [
+                28,
+                27
+              ],
+              [
+                27,
+                27
+              ],
+              [
+                26,
+                27
+              ],
+              [
+                25,
+                27
+              ],
+              [
+                24,
+                27
+              ],
+              [
+                23,
+                27
+              ],
+              [
+                22,
+                27
+              ],
+              [
+                21,
+                27
+              ],
+              [
+                20,
+                27
+              ],
+              [
+                19,
+                27
+              ],
+              [
+                18,
+                27
+              ],
+              [
+                17,
+                27
+              ],
+              [
+                16,
+                27
+              ],
+              [
+                16,
+                26
+              ],
+              [
+                16,
+                25
+              ],
+              [
+                16,
+                24
+              ],
+              [
+                16,
+                23
+              ],
+              [
+                15,
+                23
+              ]
+            ],
+            "path_cost": 17,
+            "action_feasible": true,
+            "score": 1,
+            "reason": "place valid: target position (15, 23) is free."
+          },
+          "success": true,
+          "score": 12
+        },
+        {
+          "object": "cube_near_right",
+          "place_position": [
+            17,
+            20
+          ],
+          "pick_result": {
+            "reachable": true,
+            "path": [
+              [
+                16,
+                23
+              ],
+              [
+                17,
+                23
+              ],
+              [
+                18,
+                23
+              ],
+              [
+                19,
+                23
+              ],
+              [
+                20,
+                23
+              ],
+              [
+                21,
+                23
+              ]
+            ],
+            "path_cost": 5,
+            "action_feasible": true,
+            "score": 14,
+            "reason": "pick valid: object 'cube_near_right' is graspable."
+          },
+          "place_result": {
+            "reachable": true,
+            "path": [
+              [
+                22,
+                23
+              ],
+              [
+                21,
+                23
+              ],
+              [
+                20,
+                23
+              ],
+              [
+                19,
+                23
+              ],
+              [
+                19,
+                22
+              ],
+              [
+                19,
+                21
+              ],
+              [
+                19,
+                20
+              ],
+              [
+                18,
+                20
+              ],
+              [
+                17,
+                20
+              ]
+            ],
+            "path_cost": 8,
+            "action_feasible": true,
+            "score": 8,
+            "reason": "place valid: target position (17, 20) is free."
+          },
+          "success": true,
+          "score": 32
+        }
+      ],
+      "coa_evaluation_summary": [],
+      "evaluation_log": "Reachability query: action=pick, target=cube_center_anchor, robot=(20, 20)\nPick target position: (24, 21)\nTrying pick approach point: (25, 21)\nA*: failed, goal is blocked or out of bounds.\nTrying pick approach point: (23, 21)\nA*: success, path found with length 4.\nTrying pick approach point: (24, 22)\nA*: success, path found with length 6.\nTrying pick approach point: (24, 20)\nA*: failed, goal is blocked or out of bounds.\nPick result: reachable=True, feasible=True, path_cost=4, score=16\nReachability query: action=place, target=cube_center_anchor, robot=(24, 21)\nPlace target position: (16, 20)\nA*: success, path found with length 9.\nPlace result: reachable=True, feasible=True, path_cost=9, score=6\nReachability query: action=pick, target=cube_near_left, robot=(17, 20)\nPick target position: (21, 18)\nTrying pick approach point: (22, 18)\nA*: success, path found with length 7.\nTrying pick approach point: (20, 18)\nA*: success, path found with length 5.\nTrying pick approach point: (21, 19)\nA*: success, path found with length 5.\nTrying pick approach point: (21, 17)\nA*: success, path found with length 7.\nPick result: reachable=True, feasible=True, path_cost=5, score=14\nReachability query: action=place, target=cube_near_left, robot=(21, 18)\nPlace target position: (15, 16)\nA*: success, path found with length 8.\nPlace result: reachable=True, feasible=True, path_cost=8, score=8\nReachability query: action=pick, target=cube_far_blocked, robot=(16, 16)\nPick target position: (29, 24)\nTrying pick approach point: (30, 24)\nA*: success, path found with length 22.\nTrying pick approach point: (28, 24)\nA*: success, path found with length 20.\nTrying pick approach point: (29, 25)\nA*: success, path found with length 22.\nTrying pick approach point: (29, 23)\nA*: success, path found with length 20.\nPick result: reachable=True, feasible=True, path_cost=20, score=1\nReachability query: action=place, target=cube_far_blocked, robot=(29, 24)\nPlace target position: (15, 24)\nA*: success, path found with length 14.\nPlace result: reachable=True, feasible=True, path_cost=14, score=1\nReachability query: action=pick, target=cube_far_right, robot=(16, 24)\nPick target position: (28, 27)\nTrying pick approach point: (29, 27)\nA*: success, path found with length 16.\nTrying pick approach point: (27, 27)\nA*: success, path found with length 14.\nTrying pick approach point: (28, 28)\nA*: success, path found with length 16.\nTrying pick approach point: (28, 26)\nA*: success, path found with length 14.\nPick result: reachable=True, feasible=True, path_cost=14, score=1\nReachability query: action=place, target=cube_far_right, robot=(28, 27)\nPlace target position: (15, 23)\nA*: success, path found with length 17.\nPlace result: reachable=True, feasible=True, path_cost=17, score=1\nReachability query: action=pick, target=cube_near_right, robot=(16, 23)\nPick target position: (22, 23)\nTrying pick approach point: (23, 23)\nA*: success, path found with length 9.\nTrying pick approach point: (21, 23)\nA*: success, path found with length 5.\nTrying pick approach point: (22, 24)\nA*: success, path found with length 7.\nTrying pick approach point: (22, 22)\nA*: success, path found with length 7.\nPick result: reachable=True, feasible=True, path_cost=5, score=14\nReachability query: action=place, target=cube_near_right, robot=(22, 23)\nPlace target position: (17, 20)\nA*: success, path found with length 8.\nPlace result: reachable=True, feasible=True, path_cost=8, score=8"
+    },
+    {
+      "planner_mode": "decision_pipeline",
+      "selected_strategy": "clear_blocking_first_showcase_delivery_gauntlet",
+      "total_score": 120,
+      "success": true,
+      "completed_actions": 5,
+      "failed_actions": 0,
+      "failure_reasons": "",
+      "planning_log": "=== evaluating coa: fixed_order_showcase_delivery_gauntlet ===\nstep 1/2: evaluate pick action\nReachability query: action=pick, target=cube_far_blocked, robot=(20, 20)\nPick target position: (29, 24)\nTrying pick approach point: (30, 24)\nA*: success, path found with length 14.\nTrying pick approach point: (28, 24)\nA*: success, path found with length 12.\nTrying pick approach point: (29, 25)\nA*: success, path found with length 14.\nTrying pick approach point: (29, 23)\nA*: success, path found with length 12.\nPick result: reachable=True, feasible=True, path_cost=12, score=1\n  action: pick cube_far_blocked\n  reachability: reachable=True, feasible=True\n  path details: path_cost=12, path=[(20, 20), (20, 21), (20, 22), (20, 23), (20, 24), (21, 24), (22, 24), (23, 24), (24, 24), (25, 24), (26, 24), (27, 24), (28, 24)]\n  score contribution: 1\n  reason: pick valid: object 'cube_far_blocked' is graspable.\nstep 2/2: evaluate place action\nReachability query: action=place, target=cube_far_blocked, robot=(20, 20)\nPlace target position: (15, 24)\nA*: success, path found with length 9.\nPlace result: reachable=True, feasible=True, path_cost=9, score=6\n  action: place cube_far_blocked at (15, 24)\n  reachability: reachable=True, feasible=True\n  path details: path_cost=9, path=[(20, 20), (19, 20), (18, 20), (17, 20), (16, 20), (15, 20), (15, 21), (15, 22), (15, 23), (15, 24)]\n  score contribution: 6\n  reason: place valid: target position (15, 24) is free.\nscore breakdown:\n  pick contribution: 1\n  place contribution: 6\n  outcome adjustment: 10\n  total score: 17\nsuccess explanation: COA succeeded: pick and place are both reachable and feasible.\n=== evaluating coa: nearest_first_showcase_delivery_gauntlet ===\nstep 1/2: evaluate pick action\nReachability query: action=pick, target=cube_near_left, robot=(20, 20)\nPick target position: (21, 18)\nTrying pick approach point: (22, 18)\nA*: success, path found with length 4.\nTrying pick approach point: (20, 18)\nA*: success, path found with length 2.\nTrying pick approach point: (21, 19)\nA*: success, path found with length 2.\nTrying pick approach point: (21, 17)\nA*: success, path found with length 4.\nPick result: reachable=True, feasible=True, path_cost=2, score=20\n  action: pick cube_near_left\n  reachability: reachable=True, feasible=True\n  path details: path_cost=2, path=[(20, 20), (20, 19), (20, 18)]\n  score contribution: 20\n  reason: pick valid: object 'cube_near_left' is graspable.\nstep 2/2: evaluate place action\nReachability query: action=place, target=cube_near_left, robot=(20, 20)\nPlace target position: (15, 16)\nA*: success, path found with length 9.\nPlace result: reachable=True, feasible=True, path_cost=9, score=6\n  action: place cube_near_left at (15, 16)\n  reachability: reachable=True, feasible=True\n  path details: path_cost=9, path=[(20, 20), (19, 20), (18, 20), (17, 20), (16, 20), (15, 20), (15, 19), (15, 18), (15, 17), (15, 16)]\n  score contribution: 6\n  reason: place valid: target position (15, 16) is free.\nscore breakdown:\n  pick contribution: 20\n  place contribution: 6\n  outcome adjustment: 10\n  total score: 36\nsuccess explanation: COA succeeded: pick and place are both reachable and feasible.\n=== evaluating coa: clear_blocking_first_showcase_delivery_gauntlet ===\nstep 1/2: evaluate pick action\nReachability query: action=pick, target=cube_center_anchor, robot=(20, 20)\nPick target position: (24, 21)\nTrying pick approach point: (25, 21)\nA*: failed, goal is blocked or out of bounds.\nTrying pick approach point: (23, 21)\nA*: success, path found with length 4.\nTrying pick approach point: (24, 22)\nA*: success, path found with length 6.\nTrying pick approach point: (24, 20)\nA*: failed, goal is blocked or out of bounds.\nPick result: reachable=True, feasible=True, path_cost=4, score=16\n  action: pick cube_center_anchor\n  reachability: reachable=True, feasible=True\n  path details: path_cost=4, path=[(20, 20), (20, 21), (21, 21), (22, 21), (23, 21)]\n  score contribution: 16\n  reason: pick valid: object 'cube_center_anchor' is graspable.\nstep 2/2: evaluate place action\nReachability query: action=place, target=cube_center_anchor, robot=(20, 20)\nPlace target position: (16, 20)\nA*: success, path found with length 4.\nPlace result: reachable=True, feasible=True, path_cost=4, score=16\n  action: place cube_center_anchor at (16, 20)\n  reachability: reachable=True, feasible=True\n  path details: path_cost=4, path=[(20, 20), (19, 20), (18, 20), (17, 20), (16, 20)]\n  score contribution: 16\n  reason: place valid: target position (16, 20) is free.\nscore breakdown:\n  pick contribution: 16\n  place contribution: 16\n  outcome adjustment: 10\n  total score: 42\nsuccess explanation: COA succeeded: pick and place are both reachable and feasible.\n=== evaluating coa: goal_grouped_showcase_delivery_gauntlet ===\nstep 1/2: evaluate pick action\nReachability query: action=pick, target=cube_near_left, robot=(20, 20)\nPick target position: (21, 18)\nTrying pick approach point: (22, 18)\nA*: success, path found with length 4.\nTrying pick approach point: (20, 18)\nA*: success, path found with length 2.\nTrying pick approach point: (21, 19)\nA*: success, path found with length 2.\nTrying pick approach point: (21, 17)\nA*: success, path found with length 4.\nPick result: reachable=True, feasible=True, path_cost=2, score=20\n  action: pick cube_near_left\n  reachability: reachable=True, feasible=True\n  path details: path_cost=2, path=[(20, 20), (20, 19), (20, 18)]\n  score contribution: 20\n  reason: pick valid: object 'cube_near_left' is graspable.\nstep 2/2: evaluate place action\nReachability query: action=place, target=cube_near_left, robot=(20, 20)\nPlace target position: (15, 16)\nA*: success, path found with length 9.\nPlace result: reachable=True, feasible=True, path_cost=9, score=6\n  action: place cube_near_left at (15, 16)\n  reachability: reachable=True, feasible=True\n  path details: path_cost=9, path=[(20, 20), (19, 20), (18, 20), (17, 20), (16, 20), (15, 20), (15, 19), (15, 18), (15, 17), (15, 16)]\n  score contribution: 6\n  reason: place valid: target position (15, 16) is free.\nscore breakdown:\n  pick contribution: 20\n  place contribution: 6\n  outcome adjustment: 10\n  total score: 36\nsuccess explanation: COA succeeded: pick and place are both reachable and feasible.",
+      "decision_rationale": "Decision pipeline selected clear_blocking_first_showcase_delivery_gauntlet over nearest_first_showcase_delivery_gauntlet by a score margin of 6. Winner reason: COA succeeded: pick and place are both reachable and feasible.",
+      "planned_actions": [
+        "pick_place cube_center_anchor -> (16, 20)",
+        "pick_place cube_near_left -> (15, 16)",
+        "pick_place cube_far_blocked -> (15, 24)",
+        "pick_place cube_far_right -> (15, 23)",
+        "pick_place cube_near_right -> (17, 20)"
+      ],
+      "selected_object": "cube_center_anchor",
+      "selected_goal_region": "staging_goal",
+      "coa": {
+        "family": "clear-blocking-first",
+        "name": "clear_blocking_first_showcase_delivery_gauntlet",
+        "actions": [
+          {
+            "action_type": "pick_place",
+            "object": "cube_center_anchor",
+            "place_position": [
+              16,
+              20
+            ],
+            "goal_region": "staging_goal"
+          },
+          {
+            "action_type": "pick_place",
+            "object": "cube_near_left",
+            "place_position": [
+              15,
+              16
+            ],
+            "goal_region": "left_goal"
+          },
+          {
+            "action_type": "pick_place",
+            "object": "cube_far_blocked",
+            "place_position": [
+              15,
+              24
+            ],
+            "goal_region": "right_goal"
+          },
+          {
+            "action_type": "pick_place",
+            "object": "cube_far_right",
+            "place_position": [
+              15,
+              23
+            ],
+            "goal_region": "right_goal"
+          },
+          {
+            "action_type": "pick_place",
+            "object": "cube_near_right",
+            "place_position": [
+              17,
+              20
+            ],
+            "goal_region": "staging_goal"
+          }
+        ],
+        "object": "cube_center_anchor",
+        "place_position": [
+          16,
+          20
+        ]
+      },
+      "step_outcomes": [
+        {
+          "object": "cube_center_anchor",
+          "place_position": [
+            16,
+            20
+          ],
+          "pick_result": {
+            "reachable": true,
+            "path": [
+              [
+                20,
+                20
+              ],
+              [
+                20,
+                21
+              ],
+              [
+                21,
+                21
+              ],
+              [
+                22,
+                21
+              ],
+              [
+                23,
+                21
+              ]
+            ],
+            "path_cost": 4,
+            "action_feasible": true,
+            "score": 16,
+            "reason": "pick valid: object 'cube_center_anchor' is graspable."
+          },
+          "place_result": {
+            "reachable": true,
+            "path": [
+              [
+                24,
+                21
+              ],
+              [
+                23,
+                21
+              ],
+              [
+                22,
+                21
+              ],
+              [
+                21,
+                21
+              ],
+              [
+                20,
+                21
+              ],
+              [
+                19,
+                21
+              ],
+              [
+                19,
+                20
+              ],
+              [
+                18,
+                20
+              ],
+              [
+                17,
+                20
+              ],
+              [
+                16,
+                20
+              ]
+            ],
+            "path_cost": 9,
+            "action_feasible": true,
+            "score": 6,
+            "reason": "place valid: target position (16, 20) is free."
+          },
+          "success": true,
+          "score": 32
+        },
+        {
+          "object": "cube_near_left",
+          "place_position": [
+            15,
+            16
+          ],
+          "pick_result": {
+            "reachable": true,
+            "path": [
+              [
+                17,
+                20
+              ],
+              [
+                17,
+                19
+              ],
+              [
+                17,
+                18
+              ],
+              [
+                18,
+                18
+              ],
+              [
+                19,
+                18
+              ],
+              [
+                20,
+                18
+              ]
+            ],
+            "path_cost": 5,
+            "action_feasible": true,
+            "score": 14,
+            "reason": "pick valid: object 'cube_near_left' is graspable."
+          },
+          "place_result": {
+            "reachable": true,
+            "path": [
+              [
+                21,
+                18
+              ],
+              [
+                20,
+                18
+              ],
+              [
+                19,
+                18
+              ],
+              [
+                18,
+                18
+              ],
+              [
+                17,
+                18
+              ],
+              [
+                16,
+                18
+              ],
+              [
+                15,
+                18
+              ],
+              [
+                15,
+                17
+              ],
+              [
+                15,
+                16
+              ]
+            ],
+            "path_cost": 8,
+            "action_feasible": true,
+            "score": 8,
+            "reason": "place valid: target position (15, 16) is free."
+          },
+          "success": true,
+          "score": 32
+        },
+        {
+          "object": "cube_far_blocked",
+          "place_position": [
+            15,
+            24
+          ],
+          "pick_result": {
+            "reachable": true,
+            "path": [
+              [
+                16,
+                16
+              ],
+              [
+                16,
+                17
+              ],
+              [
+                16,
+                18
+              ],
+              [
+                16,
+                19
+              ],
+              [
+                17,
+                19
+              ],
+              [
+                17,
+                20
+              ],
+              [
+                18,
+                20
+              ],
+              [
+                19,
+                20
+              ],
+              [
+                19,
+                21
+              ],
+              [
+                19,
+                22
+              ],
+              [
+                19,
+                23
+              ],
+              [
+                19,
+                24
+              ],
+              [
+                20,
+                24
+              ],
+              [
+                21,
+                24
+              ],
+              [
+                22,
+                24
+              ],
+              [
+                23,
+                24
+              ],
+              [
+                24,
+                24
+              ],
+              [
+                25,
+                24
+              ],
+              [
+                26,
+                24
+              ],
+              [
+                27,
+                24
+              ],
+              [
+                28,
+                24
+              ]
+            ],
+            "path_cost": 20,
+            "action_feasible": true,
+            "score": 1,
+            "reason": "pick valid: object 'cube_far_blocked' is graspable."
+          },
+          "place_result": {
+            "reachable": true,
+            "path": [
+              [
+                29,
+                24
+              ],
+              [
+                28,
+                24
+              ],
+              [
+                27,
+                24
+              ],
+              [
+                26,
+                24
+              ],
+              [
+                25,
+                24
+              ],
+              [
+                24,
+                24
+              ],
+              [
+                23,
+                24
+              ],
+              [
+                22,
+                24
+              ],
+              [
+                21,
+                24
+              ],
+              [
+                20,
+                24
+              ],
+              [
+                19,
+                24
+              ],
+              [
+                18,
+                24
+              ],
+              [
+                17,
+                24
+              ],
+              [
+                16,
+                24
+              ],
+              [
+                15,
+                24
+              ]
+            ],
+            "path_cost": 14,
+            "action_feasible": true,
+            "score": 1,
+            "reason": "place valid: target position (15, 24) is free."
+          },
+          "success": true,
+          "score": 12
+        },
+        {
+          "object": "cube_far_right",
+          "place_position": [
+            15,
+            23
+          ],
+          "pick_result": {
+            "reachable": true,
+            "path": [
+              [
+                16,
+                24
+              ],
+              [
+                16,
+                25
+              ],
+              [
+                16,
+                26
+              ],
+              [
+                16,
+                27
+              ],
+              [
+                17,
+                27
+              ],
+              [
+                18,
+                27
+              ],
+              [
+                19,
+                27
+              ],
+              [
+                20,
+                27
+              ],
+              [
+                21,
+                27
+              ],
+              [
+                22,
+                27
+              ],
+              [
+                23,
+                27
+              ],
+              [
+                24,
+                27
+              ],
+              [
+                25,
+                27
+              ],
+              [
+                26,
+                27
+              ],
+              [
+                27,
+                27
+              ]
+            ],
+            "path_cost": 14,
+            "action_feasible": true,
+            "score": 1,
+            "reason": "pick valid: object 'cube_far_right' is graspable."
+          },
+          "place_result": {
+            "reachable": true,
+            "path": [
+              [
+                28,
+                27
+              ],
+              [
+                27,
+                27
+              ],
+              [
+                26,
+                27
+              ],
+              [
+                25,
+                27
+              ],
+              [
+                24,
+                27
+              ],
+              [
+                23,
+                27
+              ],
+              [
+                22,
+                27
+              ],
+              [
+                21,
+                27
+              ],
+              [
+                20,
+                27
+              ],
+              [
+                19,
+                27
+              ],
+              [
+                18,
+                27
+              ],
+              [
+                17,
+                27
+              ],
+              [
+                16,
+                27
+              ],
+              [
+                16,
+                26
+              ],
+              [
+                16,
+                25
+              ],
+              [
+                16,
+                24
+              ],
+              [
+                16,
+                23
+              ],
+              [
+                15,
+                23
+              ]
+            ],
+            "path_cost": 17,
+            "action_feasible": true,
+            "score": 1,
+            "reason": "place valid: target position (15, 23) is free."
+          },
+          "success": true,
+          "score": 12
+        },
+        {
+          "object": "cube_near_right",
+          "place_position": [
+            17,
+            20
+          ],
+          "pick_result": {
+            "reachable": true,
+            "path": [
+              [
+                16,
+                23
+              ],
+              [
+                17,
+                23
+              ],
+              [
+                18,
+                23
+              ],
+              [
+                19,
+                23
+              ],
+              [
+                20,
+                23
+              ],
+              [
+                21,
+                23
+              ]
+            ],
+            "path_cost": 5,
+            "action_feasible": true,
+            "score": 14,
+            "reason": "pick valid: object 'cube_near_right' is graspable."
+          },
+          "place_result": {
+            "reachable": true,
+            "path": [
+              [
+                22,
+                23
+              ],
+              [
+                21,
+                23
+              ],
+              [
+                20,
+                23
+              ],
+              [
+                19,
+                23
+              ],
+              [
+                19,
+                22
+              ],
+              [
+                19,
+                21
+              ],
+              [
+                19,
+                20
+              ],
+              [
+                18,
+                20
+              ],
+              [
+                17,
+                20
+              ]
+            ],
+            "path_cost": 8,
+            "action_feasible": true,
+            "score": 8,
+            "reason": "place valid: target position (17, 20) is free."
+          },
+          "success": true,
+          "score": 32
+        }
+      ],
+      "coa_evaluation_summary": [
+        {
+          "name": "clear_blocking_first_showcase_delivery_gauntlet",
+          "score": 42,
+          "success": true,
+          "reason": "COA succeeded: pick and place are both reachable and feasible."
+        },
+        {
+          "name": "nearest_first_showcase_delivery_gauntlet",
+          "score": 36,
+          "success": true,
+          "reason": "COA succeeded: pick and place are both reachable and feasible."
+        },
+        {
+          "name": "goal_grouped_showcase_delivery_gauntlet",
+          "score": 36,
+          "success": true,
+          "reason": "COA succeeded: pick and place are both reachable and feasible."
+        },
+        {
+          "name": "fixed_order_showcase_delivery_gauntlet",
+          "score": 17,
+          "success": true,
+          "reason": "COA succeeded: pick and place are both reachable and feasible."
+        }
+      ],
+      "evaluation_log": "Reachability query: action=pick, target=cube_center_anchor, robot=(20, 20)\nPick target position: (24, 21)\nTrying pick approach point: (25, 21)\nA*: failed, goal is blocked or out of bounds.\nTrying pick approach point: (23, 21)\nA*: success, path found with length 4.\nTrying pick approach point: (24, 22)\nA*: success, path found with length 6.\nTrying pick approach point: (24, 20)\nA*: failed, goal is blocked or out of bounds.\nPick result: reachable=True, feasible=True, path_cost=4, score=16\nReachability query: action=place, target=cube_center_anchor, robot=(24, 21)\nPlace target position: (16, 20)\nA*: success, path found with length 9.\nPlace result: reachable=True, feasible=True, path_cost=9, score=6\nReachability query: action=pick, target=cube_near_left, robot=(17, 20)\nPick target position: (21, 18)\nTrying pick approach point: (22, 18)\nA*: success, path found with length 7.\nTrying pick approach point: (20, 18)\nA*: success, path found with length 5.\nTrying pick approach point: (21, 19)\nA*: success, path found with length 5.\nTrying pick approach point: (21, 17)\nA*: success, path found with length 7.\nPick result: reachable=True, feasible=True, path_cost=5, score=14\nReachability query: action=place, target=cube_near_left, robot=(21, 18)\nPlace target position: (15, 16)\nA*: success, path found with length 8.\nPlace result: reachable=True, feasible=True, path_cost=8, score=8\nReachability query: action=pick, target=cube_far_blocked, robot=(16, 16)\nPick target position: (29, 24)\nTrying pick approach point: (30, 24)\nA*: success, path found with length 22.\nTrying pick approach point: (28, 24)\nA*: success, path found with length 20.\nTrying pick approach point: (29, 25)\nA*: success, path found with length 22.\nTrying pick approach point: (29, 23)\nA*: success, path found with length 20.\nPick result: reachable=True, feasible=True, path_cost=20, score=1\nReachability query: action=place, target=cube_far_blocked, robot=(29, 24)\nPlace target position: (15, 24)\nA*: success, path found with length 14.\nPlace result: reachable=True, feasible=True, path_cost=14, score=1\nReachability query: action=pick, target=cube_far_right, robot=(16, 24)\nPick target position: (28, 27)\nTrying pick approach point: (29, 27)\nA*: success, path found with length 16.\nTrying pick approach point: (27, 27)\nA*: success, path found with length 14.\nTrying pick approach point: (28, 28)\nA*: success, path found with length 16.\nTrying pick approach point: (28, 26)\nA*: success, path found with length 14.\nPick result: reachable=True, feasible=True, path_cost=14, score=1\nReachability query: action=place, target=cube_far_right, robot=(28, 27)\nPlace target position: (15, 23)\nA*: success, path found with length 17.\nPlace result: reachable=True, feasible=True, path_cost=17, score=1\nReachability query: action=pick, target=cube_near_right, robot=(16, 23)\nPick target position: (22, 23)\nTrying pick approach point: (23, 23)\nA*: success, path found with length 9.\nTrying pick approach point: (21, 23)\nA*: success, path found with length 5.\nTrying pick approach point: (22, 24)\nA*: success, path found with length 7.\nTrying pick approach point: (22, 22)\nA*: success, path found with length 7.\nPick result: reachable=True, feasible=True, path_cost=5, score=14\nReachability query: action=place, target=cube_near_right, robot=(22, 23)\nPlace target position: (17, 20)\nA*: success, path found with length 8.\nPlace result: reachable=True, feasible=True, path_cost=8, score=8"
+    }
+  ],
+  "selected": {
+    "planner_mode": "clear_blocking_first",
+    "selected_strategy": "clear_blocking_first_showcase_delivery_gauntlet",
+    "total_score": 120
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "scene_summary": "/Users/gyr/codex/platform/outputs/showcase_demo/showcase_delivery_gauntlet/scene_summary.md",
+  "scene_overview": "/Users/gyr/codex/platform/outputs/showcase_demo/showcase_delivery_gauntlet/scene_overview.png",
+  "strategy_comparison": "/Users/gyr/codex/platform/outputs/showcase_demo/showcase_delivery_gauntlet/strategy_comparison.png",
+  "selected_plan_trace": "/Users/gyr/codex/platform/outputs/showcase_demo/showcase_delivery_gauntlet/selected_plan_trace.png",
+  "demo_summary": "/Users/gyr/codex/platform/outputs/showcase_demo/showcase_delivery_gauntlet/demo_summary.md",
+  "strategy_results": "/Users/gyr/codex/platform/outputs/showcase_demo/showcase_delivery_gauntlet/strategy_results.json",
+  "rollout": null
+}
