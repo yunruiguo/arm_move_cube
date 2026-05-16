@@ -49,23 +49,26 @@ REAL_BENCHMARK_SCENARIOS: dict[str, RealScenario] = {
     # Stable fallback scenario: one cube, one goal region.
     "single_cube_goal": RealScenario(
         name="single_cube_goal",
-        description="A minimal single-cube, single-goal tabletop delivery setup.",
+        description=(
+            "A minimal single-cube, single-goal tabletop delivery setup using the "
+            "current stable smooth-transport configuration and a moderate far target."
+        ),
         robot_grid_position=(20, 20),
         fixed_order=("cube_alpha",),
         object_grid_positions={
-            "cube_alpha": (22, 20),
+            "cube_alpha": (24, 18),
         },
         object_sim_positions={
-            "cube_alpha": (0.45, 0.00, 0.0258),
+            "cube_alpha": (0.46, -0.14, 0.0258),
         },
         object_goal_regions={
             "cube_alpha": "staging_goal",
         },
         goal_region_grid_positions={
-            "staging_goal": (16, 20),
+            "staging_goal": (19, 23),
         },
         goal_region_sim_positions={
-            "staging_goal": (-0.22, 0.00, 0.12),
+            "staging_goal": (-0.1466, 0.3887, 0.08),
         },
     ),
     "easy_clear": RealScenario(

@@ -98,6 +98,11 @@ def build_rollout_subtasks(config: RealScenario, coa: COA) -> list[dict[str, obj
                 "object": object_name,
                 "cube_initial_position": config.object_sim_positions[object_name],
                 "target_position": config.goal_region_sim_positions[goal_region_name],
+                "expected_cube_position": (
+                    config.goal_region_sim_positions[goal_region_name][0],
+                    config.goal_region_sim_positions[goal_region_name][1],
+                    config.object_sim_positions[object_name][2],
+                ),
                 "goal_region": goal_region_name,
             }
         )

@@ -130,6 +130,7 @@ ensure_examples_path()
 from isaacsim.robot.manipulators.examples.franka.pick_place.pick_place import (
     FrankaPickPlace,
 )
+import numpy as np
 
 
 CAMERA_POSITION = (2.5, 2.5, 2.5)
@@ -151,8 +152,25 @@ DEFAULT_ACTION_SEQUENCE = [
 
 Subtask = dict[str, object]
 
+EVENT_LABELS = {
+    0: "move_above_cube",
+    1: "approach_cube",
+    2: "close_gripper",
+    3: "lift_cube",
+    4: "move_to_goal",
+    5: "open_gripper",
+    6: "retreat_up",
+}
 
-ShowcaseFrankaPickPlace = FrankaPickPlace
+
+class ShowcaseFrankaPickPlace(FrankaPickPlace):
+    """Thin wrapper around the default Isaac Sim Franka pick-place controller."""
+
+    pass
+
+
+DEFAULT_DOWNWARD_ORIENTATION = [0.0, 1.0, 0.0, 0.0]
+ROTATED_90_DOWNWARD_ORIENTATION = [0.0, 0.7071, 0.7071, 0.0]
 
 
 def _round_vector(values: tuple[float, float, float]) -> list[float]:
@@ -181,6 +199,106 @@ def _euclidean_distance(
     return sum((float(a) - float(b)) ** 2 for a, b in zip(first, second)) ** 0.5
 
 
+def _quaternion_alignment(
+    first: np.ndarray | list[float] | tuple[float, float, float, float],
+    second: np.ndarray | list[float] | tuple[float, float, float, float],
+) -> float:
+    """Return absolute quaternion dot-product as a simple orientation agreement score."""
+    first_q = np.array(first, dtype=float)
+    second_q = np.array(second, dtype=float)
+    first_norm = np.linalg.norm(first_q)
+    second_norm = np.linalg.norm(second_q)
+    if first_norm == 0.0 or second_norm == 0.0:
+        return 0.0
+    first_q = first_q / first_norm
+    second_q = second_q / second_norm
+    return float(abs(np.dot(first_q, second_q)))
+
+
+def _normalize_quaternion(values: list[float] | tuple[float, float, float, float]) -> list[float]:
+    """Normalize a quaternion into a stable [w, x, y, z] list."""
+    quat = np.array(values, dtype=float)
+    quat_norm = float(np.linalg.norm(quat))
+    if quat_norm == 0.0:
+        return list(DEFAULT_DOWNWARD_ORIENTATION)
+    quat = quat / quat_norm
+    return [float(value) for value in quat.tolist()]
+
+
+def _select_goal_orientation(
+    scene_metadata: dict[str, object] | None,
+    selected_target_object: str,
+) -> tuple[list[float], str]:
+    """Choose a downward grasp orientation, rotating 90 degrees when local clutter suggests a side approach.
+
+    Heuristic:
+    - If a target has stronger north/south crowding than east/west crowding, rotate the gripper 90 degrees
+      around the vertical axis so the fingers approach from the orthogonal direction.
+    - Otherwise keep the default downward orientation.
+    """
+    if not isinstance(scene_metadata, dict):
+        return list(DEFAULT_DOWNWARD_ORIENTATION), "default downward orientation (no scene metadata)"
+
+    object_positions = scene_metadata.get("object_sim_positions")
+    if not isinstance(object_positions, dict):
+        return list(DEFAULT_DOWNWARD_ORIENTATION), "default downward orientation (no object positions)"
+
+    target_position = object_positions.get(selected_target_object)
+    if not isinstance(target_position, list) or len(target_position) != 3:
+        return list(DEFAULT_DOWNWARD_ORIENTATION), "default downward orientation (target pose unavailable)"
+
+    target_x, target_y = float(target_position[0]), float(target_position[1])
+    north = south = east = west = 0
+    for object_name, other_position in object_positions.items():
+        if object_name == selected_target_object:
+            continue
+        if not isinstance(other_position, list) or len(other_position) != 3:
+            continue
+        dx = float(other_position[0]) - target_x
+        dy = float(other_position[1]) - target_y
+        if abs(dx) <= 0.05 and 0.03 <= dy <= 0.14:
+            north += 1
+        if abs(dx) <= 0.05 and -0.14 <= dy <= -0.03:
+            south += 1
+        if abs(dy) <= 0.05 and 0.03 <= dx <= 0.14:
+            east += 1
+        if abs(dy) <= 0.05 and -0.14 <= dx <= -0.03:
+            west += 1
+
+    if north > 0 and south > 0 and not (east > 0 or west > 0):
+        return (
+            list(ROTATED_90_DOWNWARD_ORIENTATION),
+            (
+                "rotated 90 degrees for side approach through east-west clearance "
+                f"(north={north}, south={south}, east={east}, west={west})"
+            ),
+        )
+    if east > 0 and west > 0 and not (north > 0 or south > 0):
+        return (
+            list(DEFAULT_DOWNWARD_ORIENTATION),
+            (
+                "default downward orientation for north-south approach through side clearance "
+                f"(north={north}, south={south}, east={east}, west={west})"
+            ),
+        )
+    return (
+        list(DEFAULT_DOWNWARD_ORIENTATION),
+        (
+            "default downward orientation "
+            f"(north={north}, south={south}, east={east}, west={west})"
+        ),
+    )
+
+
+def _install_goal_orientation(controller: Any, orientation: list[float], reason: str) -> None:
+    """Install a preferred goal orientation into the default controller via the robot helper."""
+    normalized = _normalize_quaternion(orientation)
+    orientation_array = np.array([normalized], dtype=float)
+    controller.preferred_goal_orientation = normalized
+    controller.preferred_goal_orientation_reason = reason
+    controller.robot.get_downward_orientation = lambda: orientation_array.copy()
+
+
 def _extract_active_cube_translation(object_snapshots: list[dict[str, object]]) -> list[float] | None:
     """Read the main physical cube pose from a stage snapshot when available."""
     for snapshot in object_snapshots:
@@ -191,8 +309,33 @@ def _extract_active_cube_translation(object_snapshots: list[dict[str, object]]) 
     return None
 
 
+def _extract_controller_cube_translation(controller: Any) -> list[float] | None:
+    """Read the active cube pose directly from the physics-backed controller object."""
+    try:
+        cube_pose = controller.cube.get_world_poses()[0].numpy()[0].tolist()
+    except Exception:
+        return None
+    return _round_position_list(cube_pose)
+
+
+def _extract_controller_cube_orientation(controller: Any) -> list[float] | None:
+    """Read the active cube orientation directly from the physics-backed controller object."""
+    try:
+        cube_orientation = controller.cube.get_world_poses()[1].numpy()[0].tolist()
+    except Exception:
+        return None
+    return _round_quaternion_list(cube_orientation)
+
+
 def _round_position_list(values: list[float] | tuple[float, float, float] | None) -> list[float] | None:
     """Round a 3D position into a compact list."""
+    if values is None:
+        return None
+    return [round(float(value), 4) for value in values]
+
+
+def _round_quaternion_list(values: list[float] | tuple[float, float, float, float] | None) -> list[float] | None:
+    """Round a quaternion into a compact readable list."""
     if values is None:
         return None
     return [round(float(value), 4) for value in values]
@@ -210,6 +353,60 @@ def _expected_cube_rest_position(
         target_position = (0.0, 0.0, 0.0)
     z_value = cube_initial_position[2] if cube_initial_position is not None else 0.0258
     return _round_vector((target_position[0], target_position[1], z_value))
+
+
+def _capture_phase_debug_snapshot(
+    controller: Any,
+    simulation_step: int,
+    target_position: tuple[float, float, float] | None,
+) -> dict[str, object]:
+    """Capture a compact controller/robot/object state snapshot for phase debugging."""
+    current_dof_positions, current_end_effector_position, current_end_effector_orientation = (
+        controller.robot.get_current_state()
+    )
+    cube_position = controller.cube.get_world_poses()[0].numpy()[0].tolist()
+    ee_position = current_end_effector_position[0].tolist()
+    ee_orientation = current_end_effector_orientation[0].tolist()
+    relative_cube_position = [
+        round(float(cube_value) - float(ee_value), 4)
+        for cube_value, ee_value in zip(cube_position, ee_position)
+    ]
+    event_index = int(controller._event)
+    target_orientation = getattr(controller, "preferred_goal_orientation", DEFAULT_DOWNWARD_ORIENTATION)
+    target_orientation_reason = getattr(
+        controller,
+        "preferred_goal_orientation_reason",
+        "default downward orientation",
+    )
+    return {
+        "simulation_step": int(simulation_step),
+        "event_index": event_index,
+        "event_label": EVENT_LABELS.get(event_index, f"event_{event_index}"),
+        "event_progress_step": int(controller._step),
+        "gripper_dofs": _round_position_list(current_dof_positions[0][7:9].tolist()),
+        "end_effector_position": _round_position_list(ee_position),
+        "end_effector_orientation": _round_quaternion_list(ee_orientation),
+        "target_end_effector_orientation": _round_quaternion_list(target_orientation),
+        "target_end_effector_orientation_reason": target_orientation_reason,
+        "cube_position": _round_position_list(cube_position),
+        "end_effector_target_position": _round_vector(target_position or (0.0, 0.0, 0.0)),
+        "target_position": _round_vector(target_position or (0.0, 0.0, 0.0)),
+        "cube_to_end_effector_target_distance": (
+            round(_euclidean_distance(cube_position, target_position), 4)
+            if target_position is not None
+            else None
+        ),
+        "cube_to_target_distance": (
+            round(_euclidean_distance(cube_position, target_position), 4)
+            if target_position is not None
+            else None
+        ),
+        "end_effector_to_cube_distance": round(
+            _euclidean_distance(ee_position, cube_position) or 0.0,
+            4,
+        ),
+        "cube_relative_to_end_effector": relative_cube_position,
+    }
 
 
 def _positions_match(
@@ -233,7 +430,16 @@ def _capture_stage_object_snapshots() -> list[dict[str, object]]:
         return []
 
     object_snapshots: list[dict[str, object]] = []
-    interesting_keywords = ("franka", "cube", "table", "ground", "target")
+    interesting_keywords = (
+        "franka",
+        "cube",
+        "context",
+        "table",
+        "ground",
+        "target",
+        "basket",
+        "tray",
+    )
 
     for prim in stage.Traverse():
         prim_path = str(prim.GetPath())
@@ -279,6 +485,20 @@ def _build_annotation_map(scene_metadata: dict[str, object] | None) -> dict[str,
     }
 
 
+def _build_orientation_map(scene_metadata: dict[str, object] | None) -> dict[str, list[float]]:
+    """Read stable object orientations from the scenario metadata when available."""
+    if not scene_metadata:
+        return {}
+    object_orientations = scene_metadata.get("object_sim_orientations")
+    if not isinstance(object_orientations, dict):
+        return {}
+    normalized: dict[str, list[float]] = {}
+    for object_name, orientation in object_orientations.items():
+        if isinstance(orientation, (list, tuple)) and len(orientation) == 4:
+            normalized[str(object_name)] = [float(value) for value in orientation]
+    return normalized
+
+
 def _lookup_cube_id(scene_metadata: dict[str, object] | None, object_name: str) -> str:
     """Resolve a stable object ID for logs and manifests."""
     annotation_map = _build_annotation_map(scene_metadata)
@@ -297,6 +517,28 @@ def _hex_to_rgb(color_hex: str) -> tuple[int, int, int]:
     return tuple(int(color_hex[index : index + 2], 16) for index in (0, 2, 4))
 
 
+def _build_goal_slot_offsets() -> tuple[tuple[float, float], ...]:
+    """Return small XY offsets so multiple cubes stay visible inside one basket."""
+    return (
+        (0.0, 0.0),
+        (-0.045, -0.02),
+        (0.045, -0.02),
+        (-0.045, 0.04),
+        (0.045, 0.04),
+        (0.0, 0.065),
+    )
+
+
+def _resolve_context_display_position(
+    scene_metadata: dict[str, object] | None,
+    object_name: str,
+    raw_position: tuple[float, float, float] | list[float],
+) -> tuple[float, float, float]:
+    """Use the recorded physical position directly for context display consistency."""
+    x_value, y_value, z_value = (float(value) for value in raw_position)
+    return (x_value, y_value, z_value)
+
+
 def write_debug_summary(summary_path: Path, summary_payload: dict[str, object]) -> None:
     """Persist a lightweight text summary next to the rollout outputs."""
     lines = [
@@ -305,8 +547,8 @@ def write_debug_summary(summary_path: Path, summary_payload: dict[str, object]) 
         f"strategy: {summary_payload['selected_strategy']}",
         f"selected target object: {summary_payload['selected_target_object']}",
         f"selected cube id: {summary_payload.get('selected_cube_id')}",
-        f"target position: {summary_payload['target_position']}",
-        f"expected cube rest position: {summary_payload.get('expected_cube_position')}",
+        f"end-effector target position: {summary_payload.get('end_effector_target_position', summary_payload['target_position'])}",
+        f"expected cube position: {summary_payload.get('expected_cube_position')}",
         f"final active object translation: {summary_payload.get('final_active_object_translation')}",
         f"position error: {summary_payload.get('position_error')}",
         f"placement success: {summary_payload.get('placement_success')}",
@@ -319,6 +561,23 @@ def write_debug_summary(summary_path: Path, summary_payload: dict[str, object]) 
         "spawned objects after reset:",
         *_format_object_pose_lines(summary_payload["spawned_objects"]),
     ]
+    phase_debug_timeline = summary_payload.get("phase_debug_timeline")
+    if isinstance(phase_debug_timeline, list) and phase_debug_timeline:
+        lines.extend(["", "phase debug timeline:"])
+        for record in phase_debug_timeline:
+            if not isinstance(record, dict):
+                continue
+            lines.append(
+                "- "
+                f"step={record.get('simulation_step')} "
+                f"event={record.get('event_label')} "
+                f"gripper={record.get('gripper_dofs')} "
+                f"ee={record.get('end_effector_position')} "
+                f"ee_q={record.get('end_effector_orientation')} "
+                f"cube={record.get('cube_position')} "
+                f"cube_to_target={record.get('cube_to_end_effector_target_distance', record.get('cube_to_target_distance'))} "
+                f"ee_to_cube={record.get('end_effector_to_cube_distance')}"
+            )
     summary_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
@@ -492,6 +751,7 @@ def run_single_subtask_subprocess(
     planner_name: str,
     selected_strategy: str,
     subtask: Subtask,
+    placement_tolerance: float,
     scene_metadata: dict[str, object] | None,
     subtask_index: int,
     total_subtasks: int,
@@ -518,6 +778,8 @@ def run_single_subtask_subprocess(
         json.dumps(list(subtask["target_position"])),
         "--expected-cube-position",
         json.dumps(list(subtask.get("expected_cube_position", subtask["target_position"]))),
+        "--placement-tolerance",
+        str(placement_tolerance),
         "--scene-metadata-json",
         json.dumps(scene_metadata or {}),
         "--subtask-index",
@@ -702,7 +964,7 @@ def spawn_context_cubes(
     scene_metadata: dict[str, object] | None,
     active_object_name: str,
 ) -> None:
-    """Spawn simple visual-only cubes for the other scenario objects."""
+    """Spawn rigid-body cubes for the other scenario objects."""
     if not scene_metadata:
         return
 
@@ -710,7 +972,7 @@ def spawn_context_cubes(
     if not isinstance(object_sim_positions, dict):
         return
 
-    from pxr import Gf, UsdGeom
+    from pxr import Gf, PhysxSchema, UsdGeom, UsdPhysics
     import omni.usd
 
     stage = omni.usd.get_context().get_stage()
@@ -719,6 +981,7 @@ def spawn_context_cubes(
 
     context_root = UsdGeom.Xform.Define(stage, "/World/ContextObjects")
     annotation_map = _build_annotation_map(scene_metadata)
+    orientation_map = _build_orientation_map(scene_metadata)
 
     for object_name, raw_position in object_sim_positions.items():
         if object_name == active_object_name:
@@ -726,7 +989,13 @@ def spawn_context_cubes(
         if not isinstance(raw_position, (list, tuple)) or len(raw_position) != 3:
             continue
 
-        cube_path = f"{context_root.GetPath()}/{object_name}"
+        display_position = _resolve_context_display_position(
+            scene_metadata,
+            str(object_name),
+            raw_position,
+        )
+
+        cube_path = f"{context_root.GetPath()}/ContextCube_{object_name}"
         cube = UsdGeom.Cube.Define(stage, cube_path)
         cube.CreateSizeAttr(1.0)
         color_hex = str(annotation_map.get(object_name, {}).get("color", "#777777"))
@@ -734,12 +1003,127 @@ def spawn_context_cubes(
         cube.CreateDisplayColorAttr(
             [Gf.Vec3f(color_rgb[0] / 255.0, color_rgb[1] / 255.0, color_rgb[2] / 255.0)]
         )
-
-        xform_api = UsdGeom.XformCommonAPI(cube)
-        xform_api.SetTranslate(
-            Gf.Vec3d(float(raw_position[0]), float(raw_position[1]), float(raw_position[2]))
+        xformable = UsdGeom.Xformable(cube.GetPrim())
+        xformable.ClearXformOpOrder()
+        xformable.AddTranslateOp().Set(Gf.Vec3d(*display_position))
+        orientation = orientation_map.get(str(object_name), [1.0, 0.0, 0.0, 0.0])
+        xformable.AddOrientOp().Set(
+            Gf.Quatf(
+                float(orientation[0]),
+                Gf.Vec3f(float(orientation[1]), float(orientation[2]), float(orientation[3])),
+            )
         )
-        xform_api.SetScale(Gf.Vec3f(0.0516, 0.0516, 0.0516))
+        xformable.AddScaleOp().Set(Gf.Vec3f(0.055, 0.055, 0.055))
+
+        cube_prim = cube.GetPrim()
+        UsdPhysics.CollisionAPI.Apply(cube_prim)
+        UsdPhysics.RigidBodyAPI.Apply(cube_prim)
+        UsdPhysics.MassAPI.Apply(cube_prim).CreateMassAttr(0.05)
+        try:
+            physx_body_api = PhysxSchema.PhysxRigidBodyAPI.Apply(cube_prim)
+            physx_body_api.CreateEnableCCDAttr(True)
+        except Exception:
+            pass
+
+
+def spawn_target_basket(target_position: tuple[float, float, float] | None) -> None:
+    """Spawn a simple visual basket/tray around the target region."""
+    if target_position is None:
+        return
+
+    from pxr import Gf, PhysxSchema, UsdGeom, UsdPhysics
+    import omni.usd
+
+    stage = omni.usd.get_context().get_stage()
+    if stage is None:
+        return
+
+    target_x, target_y, _target_z = (float(value) for value in target_position)
+    table_surface_z = 0.0
+    basket_root = UsdGeom.Xform.Define(stage, "/World/TargetBasket")
+    basket_root_prim = basket_root.GetPrim()
+    try:
+        basket_body_api = UsdPhysics.RigidBodyAPI.Apply(basket_root_prim)
+        basket_body_api.CreateKinematicEnabledAttr(True)
+        physx_basket_api = PhysxSchema.PhysxRigidBodyAPI.Apply(basket_root_prim)
+        physx_basket_api.CreateDisableGravityAttr(True)
+    except Exception:
+        pass
+
+    # Double the basket floor area relative to the original showcase tray so multiple
+    # cubes can be shown inside with more separation.
+    basket_span = 0.30
+    basket_wall_half_offset = 0.155
+    basket_wall_height = 0.05
+    basket_base_height = 0.01
+    basket_wall_thickness = 0.01
+
+    # A shallow tray plus four walls gives us a readable "basket" without changing physics.
+    basket_parts = [
+        (
+            "TrayBase",
+            (target_x, target_y, table_surface_z + basket_base_height / 2.0),
+            (basket_span, basket_span, basket_base_height),
+            "#D9A441",
+        ),
+        (
+            "WallNorth",
+            (target_x, target_y + basket_wall_half_offset, table_surface_z + 0.045),
+            (basket_span, basket_wall_thickness, basket_wall_height),
+            "#C8842F",
+        ),
+        (
+            "WallSouth",
+            (target_x, target_y - basket_wall_half_offset, table_surface_z + 0.045),
+            (basket_span, basket_wall_thickness, basket_wall_height),
+            "#C8842F",
+        ),
+        (
+            "WallEast",
+            (target_x + basket_wall_half_offset, target_y, table_surface_z + 0.045),
+            (basket_wall_thickness, basket_span, basket_wall_height),
+            "#C8842F",
+        ),
+        (
+            "WallWest",
+            (target_x - basket_wall_half_offset, target_y, table_surface_z + 0.045),
+            (basket_wall_thickness, basket_span, basket_wall_height),
+            "#C8842F",
+        ),
+    ]
+
+    for part_name, translation, scale, color_hex in basket_parts:
+        part_path = f"{basket_root.GetPath()}/{part_name}"
+        cube = UsdGeom.Cube.Define(stage, part_path)
+        cube.CreateSizeAttr(1.0)
+        color_rgb = _hex_to_rgb(color_hex)
+        cube.CreateDisplayColorAttr(
+            [Gf.Vec3f(color_rgb[0] / 255.0, color_rgb[1] / 255.0, color_rgb[2] / 255.0)]
+        )
+        xform_api = UsdGeom.XformCommonAPI(cube)
+        xform_api.SetTranslate(Gf.Vec3d(*translation))
+        xform_api.SetScale(Gf.Vec3f(*scale))
+        part_prim = cube.GetPrim()
+        try:
+            UsdPhysics.CollisionAPI.Apply(part_prim)
+        except Exception:
+            pass
+
+
+def _resolve_basket_display_position(
+    scene_metadata: dict[str, object] | None,
+    fallback_target_position: tuple[float, float, float] | None,
+) -> tuple[float, float, float] | None:
+    """Keep the basket centered at a stable scene goal even when per-cube slots differ."""
+    if scene_metadata:
+        basket_position = scene_metadata.get("target_basket_position")
+        if isinstance(basket_position, (list, tuple)) and len(basket_position) == 3:
+            return (
+                float(basket_position[0]),
+                float(basket_position[1]),
+                float(basket_position[2]),
+            )
+    return fallback_target_position
 
 
 def _record_single_subtask_rollout(
@@ -750,6 +1134,7 @@ def _record_single_subtask_rollout(
     cube_initial_position: tuple[float, float, float] | None,
     target_position: tuple[float, float, float] | None,
     expected_cube_position: tuple[float, float, float] | None,
+    placement_tolerance: float,
     scene_metadata: dict[str, object] | None,
     subtask_index: int,
     total_subtasks: int,
@@ -765,6 +1150,15 @@ def _record_single_subtask_rollout(
         cube_initial_position=_to_numpy_vector(cube_initial_position),
         target_position=_to_numpy_vector(target_position),
     )
+    preferred_goal_orientation, preferred_goal_orientation_reason = _select_goal_orientation(
+        scene_metadata,
+        selected_target_object,
+    )
+    _install_goal_orientation(
+        controller,
+        preferred_goal_orientation,
+        preferred_goal_orientation_reason,
+    )
 
     dt = 0.01
     sim = sim_utils.SimulationContext(sim_utils.SimulationCfg(dt=dt))
@@ -773,6 +1167,7 @@ def _record_single_subtask_rollout(
 
     sim.reset()
     controller.reset(cube_position=_to_numpy_vector(cube_initial_position))
+    spawn_target_basket(_resolve_basket_display_position(scene_metadata, target_position))
     spawn_context_cubes(scene_metadata, selected_target_object)
     sim_utils.update_stage()
 
@@ -783,8 +1178,19 @@ def _record_single_subtask_rollout(
     print("  current subtask:", f"{subtask_index}/{total_subtasks}")
     print("  selected target object:", selected_target_object)
     print("  selected cube id:", selected_cube_id)
-    print("  selected target position:", _round_vector(target_position or (0.0, 0.0, 0.0)))
-    print("  expected cube rest position:", _round_vector(expected_cube_position or (0.0, 0.0, 0.0)))
+    print(
+        "  end-effector target position:",
+        _round_vector(target_position or (0.0, 0.0, 0.0)),
+    )
+    print(
+        "  expected cube position:",
+        _round_vector(expected_cube_position or (0.0, 0.0, 0.0)),
+    )
+    print(
+        "  target end-effector orientation:",
+        _round_quaternion_list(preferred_goal_orientation),
+        f"({preferred_goal_orientation_reason})",
+    )
     print("  spawned objects after reset:")
     for line in _format_object_pose_lines(spawned_objects):
         print(f"    {line}")
@@ -798,10 +1204,37 @@ def _record_single_subtask_rollout(
 
     saved_frames: list[Path] = []
     simulation_step = 0
+    phase_debug_timeline: list[dict[str, object]] = []
+    previous_event_index = int(controller._event)
+    phase_debug_timeline.append(
+        {
+            **_capture_phase_debug_snapshot(controller, simulation_step, target_position),
+            "note": "post_reset",
+        }
+    )
 
     while not controller.is_done() and simulation_step < MAX_SIMULATION_STEPS:
         controller.forward()
         sim.step()
+        current_event_index = int(controller._event)
+        if current_event_index != previous_event_index:
+            phase_debug_timeline.append(
+                {
+                    **_capture_phase_debug_snapshot(controller, simulation_step, target_position),
+                    "note": (
+                        f"event_transition:{EVENT_LABELS.get(previous_event_index, previous_event_index)}"
+                        f"->{EVENT_LABELS.get(current_event_index, current_event_index)}"
+                    ),
+                }
+            )
+            previous_event_index = current_event_index
+        if current_event_index in (4, 5) and simulation_step % 10 == 0:
+            phase_debug_timeline.append(
+                {
+                    **_capture_phase_debug_snapshot(controller, simulation_step, target_position),
+                    "note": "move_to_goal_open_gripper_window",
+                }
+            )
         should_capture = (
             simulation_step % CAPTURE_INTERVAL == 0
             and len(saved_frames) < MAX_SAVED_FRAMES
@@ -827,7 +1260,9 @@ def _record_single_subtask_rollout(
         "captured_frames": len(saved_frames),
     }
     final_object_snapshots = _capture_stage_object_snapshots()
-    physical_cube_translation = _round_position_list(_extract_active_cube_translation(final_object_snapshots))
+    stage_cube_translation = _round_position_list(_extract_active_cube_translation(final_object_snapshots))
+    physical_cube_translation = _extract_controller_cube_translation(controller)
+    physical_cube_orientation = _extract_controller_cube_orientation(controller)
     expected_rest_position = _expected_cube_rest_position(
         cube_initial_position=cube_initial_position,
         target_position=target_position,
@@ -837,7 +1272,7 @@ def _record_single_subtask_rollout(
     position_error = _euclidean_distance(final_active_object_translation, expected_rest_position)
     placement_success = (
         position_error is not None
-        and position_error <= 0.06
+        and position_error <= placement_tolerance
     )
     manifest_summary = {
         "scene_config": build_scene_config_summary(),
@@ -846,19 +1281,27 @@ def _record_single_subtask_rollout(
         "selected_strategy": selected_strategy,
         "selected_target_object": selected_target_object,
         "selected_cube_id": selected_cube_id,
+        "end_effector_target_position": _round_vector(target_position or (0.0, 0.0, 0.0)),
         "target_position": _round_vector(target_position or (0.0, 0.0, 0.0)),
         "expected_cube_position": expected_rest_position,
         "object_level_subtasks": total_subtasks,
         "current_subtask": subtask_index,
         "spawned_objects": spawned_objects,
         "final_object_snapshots": final_object_snapshots,
+        "stage_cube_translation": stage_cube_translation,
         "physical_cube_translation": physical_cube_translation,
+        "physical_cube_orientation": physical_cube_orientation,
         "final_active_object_translation": final_active_object_translation,
+        "final_active_object_orientation": physical_cube_orientation,
+        "target_end_effector_orientation": _round_quaternion_list(preferred_goal_orientation),
+        "target_end_effector_orientation_reason": preferred_goal_orientation_reason,
         "position_error": round(position_error, 4) if position_error is not None else None,
+        "placement_tolerance": float(placement_tolerance),
         "placement_success": bool(placement_success),
         "id_consistency_passed": True,
         "id_consistency_mismatches": [],
         "action_sequence": DEFAULT_ACTION_SEQUENCE,
+        "phase_debug_timeline": phase_debug_timeline,
         "final_state_summary": final_state_summary,
         "success": bool(controller.is_done()) and bool(placement_success),
         "num_frames": len(saved_frames),
@@ -884,6 +1327,7 @@ def record_pick_place_rollout_sequence(
     planner_name: str,
     selected_strategy: str,
     subtasks: list[Subtask],
+    placement_tolerance: float = 0.06,
     scene_metadata: dict[str, object] | None = None,
 ) -> dict[str, object]:
     """Run multiple single-object real rollouts and combine them into one case GIF."""
@@ -919,6 +1363,7 @@ def record_pick_place_rollout_sequence(
             planner_name=planner_name,
             selected_strategy=selected_strategy,
             subtask=subtask,
+            placement_tolerance=placement_tolerance,
             scene_metadata=mutable_scene_metadata,
             subtask_index=subtask_index,
             total_subtasks=len(subtasks),
@@ -983,7 +1428,7 @@ def record_pick_place_rollout_sequence(
     }
     summary = {
         "scene_config": build_scene_config_summary(),
-        "scene_metadata": scene_metadata or {},
+        "scene_metadata": mutable_scene_metadata or scene_metadata or {},
         "planner_name": planner_name,
         "selected_strategy": selected_strategy,
         "selected_target_object": ", ".join(str(subtask["object"]) for subtask in subtasks),
@@ -1041,6 +1486,8 @@ def record_pick_place_rollout(
     selected_target_object: str = "cube",
     cube_initial_position: tuple[float, float, float] | None = None,
     target_position: tuple[float, float, float] | None = None,
+    expected_cube_position: tuple[float, float, float] | None = None,
+    placement_tolerance: float = 0.06,
     scene_metadata: dict[str, object] | None = None,
     subtasks: list[Subtask] | None = None,
 ) -> dict[str, object]:
@@ -1051,6 +1498,7 @@ def record_pick_place_rollout(
             planner_name=planner_name,
             selected_strategy=selected_strategy,
             subtasks=subtasks,
+            placement_tolerance=placement_tolerance,
             scene_metadata=scene_metadata,
         )
 
@@ -1064,6 +1512,15 @@ def record_pick_place_rollout(
         cube_initial_position=_to_numpy_vector(cube_initial_position),
         target_position=_to_numpy_vector(target_position),
     )
+    preferred_goal_orientation, preferred_goal_orientation_reason = _select_goal_orientation(
+        scene_metadata,
+        selected_target_object,
+    )
+    _install_goal_orientation(
+        controller,
+        preferred_goal_orientation,
+        preferred_goal_orientation_reason,
+    )
 
     dt = 0.01
     sim = sim_utils.SimulationContext(sim_utils.SimulationCfg(dt=dt))
@@ -1072,13 +1529,24 @@ def record_pick_place_rollout(
 
     sim.reset()
     controller.reset(cube_position=_to_numpy_vector(cube_initial_position))
+    spawn_target_basket(_resolve_basket_display_position(scene_metadata, target_position))
+    spawn_context_cubes(scene_metadata, selected_target_object)
+    sim_utils.update_stage()
 
     spawned_objects = _capture_stage_object_snapshots()
     object_level_subtasks = 1
     print("[record_franka_pick_place_animation] reset debug snapshot:")
     print("  object-level subtasks:", object_level_subtasks)
     print("  selected target object:", selected_target_object)
-    print("  selected target position:", _round_vector(target_position or (0.0, 0.0, 0.0)))
+    print(
+        "  end-effector target position:",
+        _round_vector(target_position or (0.0, 0.0, 0.0)),
+    )
+    print(
+        "  target end-effector orientation:",
+        _round_quaternion_list(preferred_goal_orientation),
+        f"({preferred_goal_orientation_reason})",
+    )
     print("  spawned objects after reset:")
     for line in _format_object_pose_lines(spawned_objects):
         print(f"    {line}")
@@ -1092,10 +1560,37 @@ def record_pick_place_rollout(
 
     saved_frames: list[Path] = []
     simulation_step = 0
+    phase_debug_timeline: list[dict[str, object]] = []
+    previous_event_index = int(controller._event)
+    phase_debug_timeline.append(
+        {
+            **_capture_phase_debug_snapshot(controller, simulation_step, target_position),
+            "note": "post_reset",
+        }
+    )
 
     while not controller.is_done() and simulation_step < MAX_SIMULATION_STEPS:
         controller.forward()
         sim.step()
+        current_event_index = int(controller._event)
+        if current_event_index != previous_event_index:
+            phase_debug_timeline.append(
+                {
+                    **_capture_phase_debug_snapshot(controller, simulation_step, target_position),
+                    "note": (
+                        f"event_transition:{EVENT_LABELS.get(previous_event_index, previous_event_index)}"
+                        f"->{EVENT_LABELS.get(current_event_index, current_event_index)}"
+                    ),
+                }
+            )
+            previous_event_index = current_event_index
+        if current_event_index in (1, 2, 3, 4, 5, 6) and simulation_step % 10 == 0:
+            phase_debug_timeline.append(
+                {
+                    **_capture_phase_debug_snapshot(controller, simulation_step, target_position),
+                    "note": "single_rollout_diagnostic_window",
+                }
+            )
         should_capture = (
             simulation_step % CAPTURE_INTERVAL == 0
             and len(saved_frames) < MAX_SAVED_FRAMES
@@ -1120,18 +1615,44 @@ def record_pick_place_rollout(
         "simulation_steps": simulation_step,
         "captured_frames": len(saved_frames),
     }
+    final_object_snapshots = _capture_stage_object_snapshots()
+    stage_cube_translation = _round_position_list(_extract_active_cube_translation(final_object_snapshots))
+    physical_cube_translation = _extract_controller_cube_translation(controller)
+    physical_cube_orientation = _extract_controller_cube_orientation(controller)
+    expected_rest_position = _expected_cube_rest_position(
+        cube_initial_position=cube_initial_position,
+        target_position=target_position,
+        explicit_expected_position=expected_cube_position,
+    )
+    final_active_object_translation = physical_cube_translation
+    position_error = _euclidean_distance(final_active_object_translation, expected_rest_position)
+    placement_success = position_error is not None and position_error <= placement_tolerance
     summary = {
         "scene_config": build_scene_config_summary(),
         "scene_metadata": scene_metadata or {},
         "planner_name": planner_name,
         "selected_strategy": selected_strategy,
         "selected_target_object": selected_target_object,
+        "end_effector_target_position": _round_vector(target_position or (0.0, 0.0, 0.0)),
         "target_position": _round_vector(target_position or (0.0, 0.0, 0.0)),
+        "expected_cube_position": expected_rest_position,
         "object_level_subtasks": object_level_subtasks,
         "spawned_objects": spawned_objects,
         "action_sequence": DEFAULT_ACTION_SEQUENCE,
+        "phase_debug_timeline": phase_debug_timeline,
+        "final_object_snapshots": final_object_snapshots,
+        "stage_cube_translation": stage_cube_translation,
+        "physical_cube_translation": physical_cube_translation,
+        "physical_cube_orientation": physical_cube_orientation,
+        "final_active_object_translation": final_active_object_translation,
+        "final_active_object_orientation": physical_cube_orientation,
+        "target_end_effector_orientation": _round_quaternion_list(preferred_goal_orientation),
+        "target_end_effector_orientation_reason": preferred_goal_orientation_reason,
+        "position_error": round(position_error, 4) if position_error is not None else None,
+        "placement_tolerance": float(placement_tolerance),
+        "placement_success": bool(placement_success),
         "final_state_summary": final_state_summary,
-        "success": controller.is_done(),
+        "success": bool(controller.is_done()) and bool(placement_success),
         "num_frames": len(saved_frames),
         "capture_interval": CAPTURE_INTERVAL,
         "simulation_steps": simulation_step,
@@ -1175,6 +1696,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--cube-initial-position")
     parser.add_argument("--target-position")
     parser.add_argument("--expected-cube-position")
+    parser.add_argument("--placement-tolerance", type=float, default=0.06)
     parser.add_argument("--scene-metadata-json")
     parser.add_argument("--subtask-index", type=int, default=1)
     parser.add_argument("--total-subtasks", type=int, default=1)
@@ -1194,6 +1716,7 @@ def main() -> None:
                 cube_initial_position=parse_optional_vector(args.cube_initial_position),
                 target_position=parse_optional_vector(args.target_position),
                 expected_cube_position=parse_optional_vector(args.expected_cube_position),
+                placement_tolerance=args.placement_tolerance,
                 scene_metadata=parse_optional_json_dict(args.scene_metadata_json),
                 subtask_index=args.subtask_index,
                 total_subtasks=args.total_subtasks,
@@ -1206,6 +1729,8 @@ def main() -> None:
                 selected_target_object=args.selected_target_object,
                 cube_initial_position=parse_optional_vector(args.cube_initial_position),
                 target_position=parse_optional_vector(args.target_position),
+                expected_cube_position=parse_optional_vector(args.expected_cube_position),
+                placement_tolerance=args.placement_tolerance,
                 scene_metadata=parse_optional_json_dict(args.scene_metadata_json),
             )
     finally:
