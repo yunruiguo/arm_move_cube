@@ -4,34 +4,41 @@ Simulator-grounded decision platform for robotic cube rearrangement with Isaac L
 
 ![Franka five-cube decision rollout](docs/media/arm_move_cube_rollout.gif)
 
-## Showcase
+## Overview
 
-This demo connects high-level decision logic with simulator-backed execution. A Franka arm moves cubes from a plus-shaped tabletop layout into a rigid basket while preserving physical state across subtasks.
+This project demonstrates high-level decision logic integrated with simulator-backed execution. A Franka robot arm moves cubes from a plus-shaped tabletop layout into a rigid basket while maintaining physics-based state consistency.
 
-The current showcase highlights:
+## Key Capabilities
 
-- multi-object task planning
-- ordering constraints for blocked objects
-- rigid context objects and basket collision geometry
-- physics-backed position and orientation continuity
-- rollout artifacts for visual inspection
+- **Multi-object task planning** – intelligently order cube movements
+- **Blocking-aware strategies** – clear obstructing objects before retrieving blocked ones
+- **Rigid context handling** – model fixed basket geometry and collision constraints
+- **Physics continuity** – preserve position and orientation accuracy across rollouts
+- **Visual inspection** – generate rollout artifacts and GIF animations for analysis
 
-The latest successful run uses the `clear_blocking_first_plus_shape` strategy:
+## Strategy Selection
+
+The system evaluates multiple planning strategies:
+- Fixed naive order
+- Nearest-first heuristic  
+- Blocking-aware prioritization (currently preferred)
+
+The **`clear_blocking_first_plus_shape`** strategy is the proven approach, executing moves in order:
 
 ```text
-cube_north -> cube_east -> cube_south -> cube_west -> cube_center
+cube_north → cube_east → cube_south → cube_west → cube_center
 ```
 
-The decision logic compares naive fixed order, nearest-first, and blocking-aware strategies, then selects the feasible order that clears surrounding cubes before retrieving the center cube.
+This ensures surrounding cubes are cleared before attempting the center cube.
 
 ## Key Files
 
-- `multi_cube_basket_demo.py`: five-cube showcase runner and strategy evaluation.
-- `record_franka_pick_place_animation.py`: Isaac Lab rollout recording, rigid context cubes, basket, manifests, and GIF generation.
-- `ARM_MOVE_CUBE_SHOWCASE_TASK_DESCRIPTION.md`: detailed task description and implementation notes.
-- `experiment_runner_real.py`: structured experiment runner for real Isaac Lab scenarios.
+- **`multi_cube_basket_demo.py`** – Five-cube showcase runner and strategy comparison
+- **`record_franka_pick_place_animation.py`** – Isaac Lab rollout recording, GIF generation, and context modeling
+- **`ARM_MOVE_CUBE_SHOWCASE_TASK_DESCRIPTION.md`** – Detailed task specification and implementation notes
+- **`experiment_runner_real.py`** – Structured runner for Isaac Lab experiments
 
-## Run
+## Setup and Execution
 
 On the A100 Isaac Lab environment:
 
@@ -42,9 +49,8 @@ conda activate isaac311
 python multi_cube_basket_demo.py
 ```
 
-Outputs are written under:
+Outputs are written to:
 
 ```text
 /mnt/data2/outputs/showcase_demo_five_cubes_plus_shape_planning/
 ```
-
